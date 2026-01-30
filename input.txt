@@ -1,0 +1,81 @@
+// S++ Sample Program - Input File
+// Testing all language features
+
+// Variable declarations
+purno x = 10;
+purno y = 5;
+dosomik pi = 3.14159;
+chinho grade = 'A';
+
+// Function definition
+banaw purno jog_fol(purno a, purno b) shuru
+    ferot a jog b;
+shesh
+
+banaw purno biyog_fol(purno a, purno b) shuru
+    ferot a biyog b;
+shesh
+
+// Main function
+purno main() shuru
+    purno result;
+    purno counter;
+    
+    // Conditional statement
+    jodi (x > y) shuru
+        dekhao("x is greater");
+        result = x gun 2;
+    shesh
+    nahole shuru
+        dekhao("y is greater or equal");
+        result = y gun 2;
+    shesh
+    
+    // For loop
+    barbar (purno i = 0; i < 10; i = i jog 1) shuru
+        dekhao(i);
+        result = result jog i;
+    shesh
+    
+    // While loop
+    counter = 0;
+    ghurao (counter < 5) shuru
+        dekhao("Counter: ");
+        dekhao(counter);
+        counter = counter jog 1;
+    shesh
+    
+    // Array usage
+    array purno numbers[5];
+    numbers[0] = 100;
+    numbers[1] = 200;
+    
+    // Mathematical operation
+    dosomik sqrt_val = root(16.0);
+    
+    // Boolean values
+    purno flag = shotto;
+    purno check = mittha;
+    
+    // Comparison operators
+    jodi (x == 10 && y != 0) shuru
+        dekhao("Conditions met");
+    shesh
+    
+    jodi (x >= y || flag == shotto) shuru
+        dekhao("Either condition true");
+    shesh
+    
+    // Break and continue
+    barbar (purno j = 0; j < 20; j = j jog 1) shuru
+        jodi (j == 5) shuru
+            chaliyejao;
+        shesh
+        jodi (j == 15) shuru
+            bondho;
+        shesh
+        dekhao(j);
+    shesh
+    
+    ferot 0;
+shesh
