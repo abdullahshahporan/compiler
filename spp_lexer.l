@@ -1,112 +1,155 @@
 %{
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 
+/* Helper function - prints token name and value */
+void tok(char* type) { 
+    fprintf(yyout, "%-20s : %s\n", type, yytext); 
+}
+
+/* Check if a word is a keyword */
+int is_keyword(char* word) {
+    char* keywords[] = {
+        "shuru", "shesh", "jodi", "nahole", "ghurao", "barbar",
+        "bondho", "chaliyejao", "ferot", "banaw", "main",
+        "purno", "dosomik", "chinho", "kisu_na", "array",
+        "shotto", "mittha", "dekhao", "neo",
+        "jog", "biyog", "gun", "vag", "root",
+        NULL
+    };
+    for (int i = 0; keywords[i]; i++) {
+        if (strcmp(word, keywords[i]) == 0) return 1;
+    }
+    return 0;
+}
+
+/* Track line numbers */
 int line = 1;
-int tokens = 0;
+
 %}
 
 %option noyywrap
 
-/* States for better lexical analysis */
+/* States for comments */
 %x COMMENT
 
-DIGIT    [0-9]
-LETTER   [a-zA-Z_]
-ID       {LETTER}({LETTER}|{DIGIT})*
-INT      {DIGIT}+
-FLOAT    {DIGIT}+\.{DIGIT}+
+/* Pattern shortcuts */
+DIGIT      [0-9]
+LETTER     [a-zA-Z_]
+ID         {LETTER}({LETTER}|{DIGIT}|_)*
+INT        {DIGIT}+
+FLOAT      {DIGIT}+\.{DIGIT}+
+SPACE      [ \t\r]+
 
 %%
 
-    /* Whitespace and newlines */
-[ \t]+              { /* skip */ }
-\n                  { line++; }
+{SPACE}              ;
+\n                   { line++; }
 
-    /* Comments using states */
-"//".*              { /* single line comment */ }
-"/*"                { BEGIN(COMMENT); }
-<COMMENT>"*/"       { BEGIN(INITIAL); }
-<COMMENT>\n         { line++; }
-<COMMENT>.          { /* skip */ }
+"//".*               ;
+"/*"                 { BEGIN(COMMENT); }
+<COMMENT>"*/"        { BEGIN(INITIAL); }
+<COMMENT>\n          { line++; }
+<COMMENT>.           ;
 
-    /* Keywords */
-"shuru"             { printf("BLOCK_START\n"); tokens++; }
-"shesh"             { printf("BLOCK_END\n"); tokens++; }
-"jodi"              { printf("IF\n"); tokens++; }
-"nahole"            { printf("ELSE\n"); tokens++; }
-"ghurao"            { printf("WHILE\n"); tokens++; }
-"barbar"            { printf("FOR\n"); tokens++; }
-"ferot"             { printf("RETURN\n"); tokens++; }
-"bondho"            { printf("BREAK\n"); tokens++; }
-"chaliyejao"        { printf("CONTINUE\n"); tokens++; }
-"dekhao"            { printf("PRINT\n"); tokens++; }
-"neo"               { printf("INPUT\n"); tokens++; }
-"banaw"             { printf("FUNCTION\n"); tokens++; }
-"array"             { printf("ARRAY\n"); tokens++; }
-"main"              { printf("MAIN\n"); tokens++; }
+"shuru"              { tok("SHURU"); }
+"shesh"              { tok("SHESH"); }
+"jodi"               { tok("JODI"); }
+"nahole"             { tok("NAHOLE"); }
+"ghurao"             { tok("GHURAO"); }
+"barbar"             { tok("BARBAR"); }
+"bondho"             { tok("BONDHO"); }
+"chaliyejao"         { tok("CHALIYEJAO"); }
+"ferot"              { tok("FEROT"); }
+"banaw"              { tok("BANAW"); }
+"main"               { tok("MAIN"); }
 
-    /* Data Types */
-"purno"             { printf("INT\n"); tokens++; }
-"dosomik"           { printf("FLOAT\n"); tokens++; }
-"chinho"            { printf("CHAR\n"); tokens++; }
-"kisu_na"           { printf("VOID\n"); tokens++; }
-"shotto"            { printf("TRUE\n"); tokens++; }
-"mittha"            { printf("FALSE\n"); tokens++; }
+"purno"              { tok("TYPE_INT"); }
+"dosomik"            { tok("TYPE_FLOAT"); }
+"chinho"             { tok("TYPE_CHAR"); }
+"kisu_na"            { tok("TYPE_VOID"); }
+"array"              { tok("TYPE_ARRAY"); }
 
-    /* Operators */
-"jog"               { printf("ADD\n"); tokens++; }
-"biyog"             { printf("SUB\n"); tokens++; }
-"gun"               { printf("MUL\n"); tokens++; }
-"vag"               { printf("DIV\n"); tokens++; }
-"root"              { printf("SQRT\n"); tokens++; }
-"=="                { printf("EQUAL\n"); tokens++; }
-"!="                { printf("NOT_EQUAL\n"); tokens++; }
-"<="                { printf("LESS_EQ\n"); tokens++; }
-">="                { printf("GREATER_EQ\n"); tokens++; }
-"<"                 { printf("LESS\n"); tokens++; }
-">"                 { printf("GREATER\n"); tokens++; }
-"&&"                { printf("AND\n"); tokens++; }
-"||"                { printf("OR\n"); tokens++; }
-"!"                 { printf("NOT\n"); tokens++; }
-"="                 { printf("ASSIGN\n"); tokens++; }
-"++"                { printf("INCREMENT\n"); tokens++; }
-"--"                { printf("DECREMENT\n"); tokens++; }
+"shotto"             { tok("TRUE"); }
+"mittha"             { tok("FALSE"); }
 
-    /* Delimiters */
-";"                 { printf("SEMICOLON\n"); tokens++; }
-","                 { printf("COMMA\n"); tokens++; }
-"("                 { printf("LPAREN\n"); tokens++; }
-")"                 { printf("RPAREN\n"); tokens++; }
-"{"                 { printf("LBRACE\n"); tokens++; }
-"}"                 { printf("RBRACE\n"); tokens++; }
-"["                 { printf("LBRACKET\n"); tokens++; }
-"]"                 { printf("RBRACKET\n"); tokens++; }
+"dekhao"             { tok("PRINT"); }
+"neo"                { tok("INPUT"); }
 
-    /* Literals and Identifiers */
-{FLOAT}             { printf("FLOAT_LIT(%s)\n", yytext); tokens++; }
-{INT}               { printf("INT_LIT(%s)\n", yytext); tokens++; }
-{ID}                { printf("ID(%s)\n", yytext); tokens++; }
+"jog"                { tok("ADD"); }
+"biyog"              { tok("SUB"); }
+"gun"                { tok("MUL"); }
+"vag"                { tok("DIV"); }
+"root"               { tok("SQRT"); }
 
-    /* Errors */
-.                   { fprintf(stderr, "Error: '%s' at line %d\n", yytext, line); }
+"=="                 { tok("EQ"); }
+"!="                 { tok("NEQ"); }
+"<="                 { tok("LE"); }
+">="                 { tok("GE"); }
+"<"                  { tok("LT"); }
+">"                  { tok("GT"); }
+
+"&&"                 { tok("AND"); }
+"||"                 { tok("OR"); }
+"!"                  { tok("NOT"); }
+
+"++"                 { tok("INC"); }
+"--"                 { tok("DEC"); }
+"="                  { tok("ASSIGN"); }
+
+{FLOAT}              { tok("FLOAT"); }
+{INT}                { tok("INT"); }
+
+\'([^'\\]|\\.)?\'    { tok("CHAR"); }
+\"([^"\\]|\\.)*\"    { tok("STRING"); }
+
+{ID}                 {
+                        if (is_keyword(yytext)) tok("KEYWORD");
+                        else tok("ID");
+                     }
+
+";"                  { tok("SEMICOLON"); }
+","                  { tok("COMMA"); }
+"("                  { tok("LPAREN"); }
+")"                  { tok("RPAREN"); }
+"{"                  { tok("LBRACE"); }
+"}"                  { tok("RBRACE"); }
+"["                  { tok("LBRACKET"); }
+"]"                  { tok("RBRACKET"); }
+
+.                    { 
+                        fprintf(stderr, "Error: Unknown '%s' at line %d\n", yytext, line); 
+                     }
 
 %%
 
-int main(int argc, char *argv[]) {
-    if (argc > 1) {
-        yyin = fopen(argv[1], "r");
-        if (!yyin) {
-            perror(argv[1]);
-            return 1;
-        }
+int main(void) {
+    FILE *in = fopen("input.txt", "r");
+    if (!in) {
+        printf("Error: Can't open input.txt\n");
+        return 1;
     }
     
-    yylex();
-    printf("\n--- Statistics ---\n");
-    printf("Lines: %d\n", line);
-    printf("Tokens: %d\n", tokens);
+    FILE *out = fopen("output.txt", "w");
+    if (!out) {
+        printf("Error: Can't create output.txt\n");
+        fclose(in);
+        return 1;
+    }
     
-    if (yyin != stdin) fclose(yyin);
+    fprintf(out, "TOKEN                : LEXEME\n");
+    fprintf(out, "-----------------------------------\n");
+    
+    yyin = in;
+    yyout = out;
+    yylex();
+    
+    fprintf(out, "-----------------------------------\n");
+    fprintf(out, "Total lines: %d\n", line);
+    
+    fclose(in);
+    fclose(out);
+    
+    printf("Done! Check output.txt\n");
     return 0;
 }
