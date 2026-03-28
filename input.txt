@@ -1,31 +1,126 @@
-// Simple S++ Program to demonstrate lexical analysis
+// ============================================
+// S++ (SPP) - Complete Feature Demonstration
+// Bangla-keyword Programming Language
+// ============================================
 
+// --- User-Defined Function: add(a, b) ---
+purno add(purno a, purno b) shuru
+    ferot a jog b;
+shesh
+
+// --- User-Defined Function: factorial ---
+purno factorial(purno n) shuru
+    purno result = 1;
+    purno i = 1;
+    ghurao (i <= n) shuru
+        result = result gun i;
+        i = i jog 1;
+    shesh
+    ferot result;
+shesh
+
+// --- Main Function ---
 purno main() shuru
-    // Variable declarations
+
+    // === Variable Declaration & Assignment ===
     purno x = 10;
     purno y = 20;
-    dosomik result = 0.0;
-    
-    // Arithmetic operations
+    dosomik pi = 3.14;
+    purno sum = 0;
+
+    dekhao("=== S++ Program Running ===");
+
+    // === Expression Evaluation ===
     x = x jog 5;
     y = y biyog 3;
-    result = x gun y vag 2;
-    
-    // Conditional statement
+    dosomik result = x gun y vag 2;
+    dekhao("x after x jog 5:");
+    dekhao(x);
+    dekhao("y after y biyog 3:");
+    dekhao(y);
+    dekhao("result = x gun y vag 2:");
+    dekhao(result);
+
+    // === Implicit Type Conversion (int -> float) ===
+    dosomik converted = x;
+
+    // === If/Else (only ONE branch executes) ===
     jodi (x > y) shuru
         dekhao("x is bigger");
     shesh
     nahole shuru
-        dekhao("y is bigger");
+        dekhao("y is bigger or equal");
     shesh
-    
-    // Loop example
-    ghurao (x < 100) shuru
-        x = x jog 10;
-        jodi (x == 50) shuru
+
+    // === While Loop (correct iteration) ===
+    purno counter = 0;
+    ghurao (counter < 5) shuru
+        sum = sum jog counter;
+        counter = counter jog 1;
+    shesh
+    dekhao("sum after while (0+1+2+3+4):");
+    dekhao(sum);
+
+    // === Break in Loop (exits at i==10) ===
+    purno i = 0;
+    ghurao (i < 100) shuru
+        jodi (i == 10) shuru
             bondho;
         shesh
+        i = i jog 1;
     shesh
-    
+    dekhao("i after break (should be 10):");
+    dekhao(i);
+
+    // === Function Call with Parameters & Return ===
+    purno addResult = add(2, 3);
+    dekhao("add(2, 3) =");
+    dekhao(addResult);
+
+    // === Recursive-style Function Call ===
+    purno fact5 = factorial(5);
+    dekhao("factorial(5) =");
+    dekhao(fact5);
+
+    // === Array: Declaration, Assignment, Access ===
+    array purno arr[5];
+    arr[0] = 100;
+    arr[1] = 200;
+    arr[2] = 300;
+    arr[3] = arr[0] jog arr[1];
+    dekhao("arr[0] =");
+    dekhao(arr[0]);
+    dekhao("arr[1] =");
+    dekhao(arr[1]);
+    dekhao("arr[3] = arr[0]+arr[1] =");
+    dekhao(arr[3]);
+
+    // === Square Root (built-in) ===
+    dosomik sqval = root(144);
+    dekhao("root(144) =");
+    dekhao(sqval);
+
+    // === Constant Expression (optimizer will fold this) ===
+    purno optimized = 3 jog 5 gun 2;
+    dekhao("3 + 5*2 (should be 13) =");
+    dekhao(optimized);
+
+    // === Continue in Loop ===
+    purno oddSum = 0;
+    purno j = 0;
+    ghurao (j < 10) shuru
+        j = j jog 1;
+        // skip even numbers
+        purno rem = j biyog ((j vag 2) gun 2);
+        jodi (rem == 0) shuru
+            chaliyejao;
+        shesh
+        oddSum = oddSum jog j;
+    shesh
+    dekhao("Odd sum 1..9 =");
+    dekhao(oddSum);
+
+    dekhao("=== Program Complete ===");
     ferot 0;
+
 shesh

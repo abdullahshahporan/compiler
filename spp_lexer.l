@@ -1,27 +1,16 @@
 %{
+/* ========================================================
+   S++ Compiler - Flex Lexer
+   Integrated with Bison parser.
+   Tokenizes Bangla-keyword based S++ source files.
+   ======================================================== */
+
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include "spp_parser.tab.h"
 
-/* Helper function - prints token name and value */
-void tok(char* type) { 
-    fprintf(yyout, "%-20s : %s\n", type, yytext); 
-}
-
-/* Check if a word is a keyword */
-int is_keyword(char* word) {
-    char* keywords[] = {
-        "shuru", "shesh", "jodi", "nahole", "ghurao", "barbar",
-        "bondho", "chaliyejao", "ferot", "banaw", "main",
-        "purno", "dosomik", "chinho", "kisu_na", "array",
-        "shotto", "mittha", "dekhao", "neo",
-        "jog", "biyog", "gun", "vag", "root",
-        NULL
-    };
-    for (int i = 0; keywords[i]; i++) {
-        if (strcmp(word, keywords[i]) == 0) return 1;
-    }
-    return 0;
-}
+extern YYSTYPE yylval;
 
 /* Track line numbers */
 int line = 1;
@@ -52,104 +41,104 @@ SPACE      [ \t\r]+
 <COMMENT>\n          { line++; }
 <COMMENT>.           ;
 
-"shuru"              { tok("SHURU"); }
-"shesh"              { tok("SHESH"); }
-"jodi"               { tok("JODI"); }
-"nahole"             { tok("NAHOLE"); }
-"ghurao"             { tok("GHURAO"); }
-"barbar"             { tok("BARBAR"); }
-"bondho"             { tok("BONDHO"); }
-"chaliyejao"         { tok("CHALIYEJAO"); }
-"ferot"              { tok("FEROT"); }
-"banaw"              { tok("BANAW"); }
-"main"               { tok("MAIN"); }
+ /* ---------- Keywords ---------- */
+"shuru"              { return SHURU; }
+"shesh"              { return SHESH; }
+"jodi"               { return JODI; }
+"nahole"             { return NAHOLE; }
+"ghurao"             { return GHURAO; }
+"barbar"             { return BARBAR; }
+"bondho"             { return BONDHO; }
+"chaliyejao"         { return CHALIYEJAO; }
+"ferot"              { return FEROT; }
+"banaw"              { return BANAW; }
+"main"               { return MAIN; }
 
-"purno"              { tok("TYPE_INT"); }
-"dosomik"            { tok("TYPE_FLOAT"); }
-"chinho"             { tok("TYPE_CHAR"); }
-"kisu_na"            { tok("TYPE_VOID"); }
-"array"              { tok("TYPE_ARRAY"); }
+ /* ---------- Data Types ---------- */
+"purno"              { return TYPE_INT; }
+"dosomik"            { return TYPE_FLOAT; }
+"chinho"             { return TYPE_CHAR; }
+"kisu_na"            { return TYPE_VOID; }
+"array"              { return TYPE_ARRAY; }
 
-"shotto"             { tok("TRUE"); }
-"mittha"             { tok("FALSE"); }
+ /* ---------- Boolean Literals ---------- */
+"shotto"             { return TRUE_VAL; }
+"mittha"             { return FALSE_VAL; }
 
-"dekhao"             { tok("PRINT"); }
-"neo"                { tok("INPUT"); }
+ /* ---------- I/O ---------- */
+"dekhao"             { return PRINT; }
+"neo"                { return INPUT; }
 
-"jog"                { tok("ADD"); }
-"biyog"              { tok("SUB"); }
-"gun"                { tok("MUL"); }
-"vag"                { tok("DIV"); }
-"root"               { tok("SQRT"); }
+ /* ---------- Arithmetic Operators (keyword form) ---------- */
+"jog"                { return ADD; }
+"biyog"              { return SUB; }
+"gun"                { return MUL; }
+"vag"                { return DIV; }
+"root"               { return SQRT; }
 
-"=="                 { tok("EQ"); }
-"!="                 { tok("NEQ"); }
-"<="                 { tok("LE"); }
-">="                 { tok("GE"); }
-"<"                  { tok("LT"); }
-">"                  { tok("GT"); }
+ /* ---------- Comparison Operators ---------- */
+"=="                 { return EQ; }
+"!="                 { return NEQ; }
+"<="                 { return LE; }
+">="                 { return GE; }
+"<"                  { return LT; }
+">"                  { return GT; }
 
-"&&"                 { tok("AND"); }
-"||"                 { tok("OR"); }
-"!"                  { tok("NOT"); }
+ /* ---------- Logical Operators ---------- */
+"&&"                 { return AND; }
+"||"                 { return OR; }
+"!"                  { return NOT; }
 
-"++"                 { tok("INC"); }
-"--"                 { tok("DEC"); }
-"="                  { tok("ASSIGN"); }
+ /* ---------- Increment / Decrement ---------- */
+"++"                 { return INC; }
+"--"                 { return DEC; }
 
-{FLOAT}              { tok("FLOAT"); }
-{INT}                { tok("INT"); }
+ /* ---------- Assignment ---------- */
+"="                  { return ASSIGN; }
 
-\'([^'\\]|\\.)?\'    { tok("CHAR"); }
-\"([^"\\]|\\.)*\"    { tok("STRING"); }
-
-{ID}                 {
-                        if (is_keyword(yytext)) tok("KEYWORD");
-                        else tok("ID");
+ /* ---------- Literals ---------- */
+{FLOAT}              {
+                        yylval.fval = atof(yytext);
+                        return FLOAT_LIT;
+                     }
+{INT}                {
+                        yylval.ival = atoi(yytext);
+                        return INT_LIT;
                      }
 
-";"                  { tok("SEMICOLON"); }
-","                  { tok("COMMA"); }
-"("                  { tok("LPAREN"); }
-")"                  { tok("RPAREN"); }
-"{"                  { tok("LBRACE"); }
-"}"                  { tok("RBRACE"); }
-"["                  { tok("LBRACKET"); }
-"]"                  { tok("RBRACKET"); }
+\'([^'\\]|\\.)?\'    {
+                        yylval.cval = yytext[1];
+                        return CHAR_LIT;
+                     }
 
-.                    { 
-                        fprintf(stderr, "Error: Unknown '%s' at line %d\n", yytext, line); 
+\"([^"\\]|\\.)*\"    {
+                        /* Remove quotes and copy string */
+                        int len = strlen(yytext);
+                        strncpy(yylval.sval, yytext + 1, len - 2);
+                        yylval.sval[len - 2] = '\0';
+                        return STRING_LIT;
+                     }
+
+ /* ---------- Identifiers ---------- */
+{ID}                 {
+                        strncpy(yylval.sval, yytext, 255);
+                        yylval.sval[255] = '\0';
+                        return IDENTIFIER;
+                     }
+
+ /* ---------- Delimiters ---------- */
+";"                  { return SEMICOLON; }
+","                  { return COMMA; }
+"("                  { return LPAREN; }
+")"                  { return RPAREN; }
+"{"                  { return LBRACE; }
+"}"                  { return RBRACE; }
+"["                  { return LBRACKET; }
+"]"                  { return RBRACKET; }
+
+ /* ---------- Invalid Token Handling ---------- */
+.                    {
+                        fprintf(stderr, "Lexical Error: Unrecognized token '%s' at line %d\n", yytext, line);
                      }
 
 %%
-
-int main(void) {
-    FILE *in = fopen("input.txt", "r");
-    if (!in) {
-        printf("Error: Can't open input.txt\n");
-        return 1;
-    }
-    
-    FILE *out = fopen("output.txt", "w");
-    if (!out) {
-        printf("Error: Can't create output.txt\n");
-        fclose(in);
-        return 1;
-    }
-    
-    fprintf(out, "TOKEN                : LEXEME\n");
-    fprintf(out, "-----------------------------------\n");
-    
-    yyin = in;
-    yyout = out;
-    yylex();
-    
-    fprintf(out, "-----------------------------------\n");
-    fprintf(out, "Total lines: %d\n", line);
-    
-    fclose(in);
-    fclose(out);
-    
-    printf("Done! Check output.txt\n");
-    return 0;
-}
