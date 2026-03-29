@@ -78,8 +78,8 @@
 /* ================================================================
    S++ Compiler - Bison Parser (AST-based Interpreter)
    ================================================================
-   Architecture: Parse -> Build AST -> Execute AST -> Generate TAC
-   This ensures correct control flow for if/else, loops, functions.
+   Architecture: Parse -> Build AST -> Semantic Check -> Execute
+                 -> Generate TAC -> Optimize -> Generate C Code
    ================================================================ */
 
 void yyerror(const char *s);
@@ -307,6 +307,14 @@ const char* type_name(VarType t) {
     return "unknown";
 }
 
+/* ==================== Debug Trace Macro ==================== */
+#define DEBUG_EXEC 0
+#if DEBUG_EXEC
+#define TRACE(...) printf(__VA_ARGS__)
+#else
+#define TRACE(...) ((void)0)
+#endif
+
 /* ==================== Execution Result ==================== */
 typedef struct {
     double value;
@@ -316,6 +324,7 @@ typedef struct {
     int is_return;
     char sval[256];
     int is_string;
+    int is_error;
 } ExecResult;
 
 ExecResult make_res(double val, VarType t) {
@@ -330,6 +339,13 @@ ExecResult eval_expr(ASTNode *node);
 ExecResult exec_node(ASTNode *node);
 ExecResult exec_list(ASTNode *list);
 void exec_program(ASTNode *root);
+void semantic_check_program(ASTNode *root);
+
+/* Reset symbol table between phases */
+void sym_reset(void) {
+    sym_count = 0;
+    cur_scope = 0;
+}
 
 /* ==================== TAC Generation ==================== */
 #define MAX_TAC 3000
@@ -399,7 +415,7 @@ int errors_before_exec = 0; /* snapshot of error_count before execution */
 
 
 /* Line 189 of yacc.c  */
-#line 403 "spp_parser.tab.c"
+#line 419 "spp_parser.tab.c"
 
 /* Enabling traces.  */
 #ifndef YYDEBUG
@@ -486,7 +502,7 @@ typedef union YYSTYPE
 {
 
 /* Line 214 of yacc.c  */
-#line 331 "spp_parser.y"
+#line 347 "spp_parser.y"
 
     int ival;
     double fval;
@@ -498,7 +514,7 @@ typedef union YYSTYPE
 
 
 /* Line 214 of yacc.c  */
-#line 502 "spp_parser.tab.c"
+#line 518 "spp_parser.tab.c"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -510,7 +526,7 @@ typedef union YYSTYPE
 
 
 /* Line 264 of yacc.c  */
-#line 514 "spp_parser.tab.c"
+#line 530 "spp_parser.tab.c"
 
 #ifdef short
 # undef short
@@ -834,15 +850,15 @@ static const yytype_int8 yyrhs[] =
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
 static const yytype_uint16 yyrline[] =
 {
-       0,   389,   389,   393,   394,   398,   401,   404,   410,   411,
-     415,   418,   424,   425,   426,   427,   431,   432,   436,   437,
-     438,   439,   440,   441,   442,   443,   444,   445,   446,   447,
-     448,   458,   459,   460,   467,   470,   477,   478,   479,   483,
-     484,   485,   489,   490,   491,   495,   496,   497,   498,   499,
-     500,   501,   502,   503,   506,   513,   514,   518,   519,   524,
-     525,   526,   527,   528,   529,   530,   531,   532,   537,   540,
-     547,   554,   560,   561,   562,   567,   572,   577,   578,   582,
-     583,   587,   594,   595
+       0,   405,   405,   409,   410,   414,   417,   420,   426,   427,
+     431,   434,   440,   441,   442,   443,   447,   448,   452,   453,
+     454,   455,   456,   457,   458,   459,   460,   461,   462,   463,
+     464,   474,   475,   476,   483,   486,   493,   494,   495,   499,
+     500,   501,   505,   506,   507,   511,   512,   513,   514,   515,
+     516,   517,   518,   519,   522,   529,   530,   534,   535,   540,
+     541,   542,   543,   544,   545,   546,   547,   548,   553,   556,
+     563,   570,   576,   577,   578,   583,   588,   593,   594,   598,
+     599,   603,   610,   611
 };
 #endif
 
@@ -1889,28 +1905,28 @@ yyreduce:
         case 2:
 
 /* Line 1455 of yacc.c  */
-#line 389 "spp_parser.y"
+#line 405 "spp_parser.y"
     { ast_root = (yyvsp[(1) - (1)].node); ;}
     break;
 
   case 3:
 
 /* Line 1455 of yacc.c  */
-#line 393 "spp_parser.y"
+#line 409 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (1)].node); ;}
     break;
 
   case 4:
 
 /* Line 1455 of yacc.c  */
-#line 394 "spp_parser.y"
+#line 410 "spp_parser.y"
     { (yyval.node) = append_list((yyvsp[(1) - (2)].node), (yyvsp[(2) - (2)].node)); ;}
     break;
 
   case 5:
 
 /* Line 1455 of yacc.c  */
-#line 398 "spp_parser.y"
+#line 414 "spp_parser.y"
     {
         (yyval.node) = make_func_def((yyvsp[(1) - (7)].type_val), "main", NULL, (yyvsp[(6) - (7)].node));
     ;}
@@ -1919,7 +1935,7 @@ yyreduce:
   case 6:
 
 /* Line 1455 of yacc.c  */
-#line 401 "spp_parser.y"
+#line 417 "spp_parser.y"
     {
         (yyval.node) = make_func_def((yyvsp[(1) - (8)].type_val), (yyvsp[(2) - (8)].sval), (yyvsp[(4) - (8)].node), (yyvsp[(7) - (8)].node));
     ;}
@@ -1928,7 +1944,7 @@ yyreduce:
   case 7:
 
 /* Line 1455 of yacc.c  */
-#line 404 "spp_parser.y"
+#line 420 "spp_parser.y"
     {
         (yyval.node) = make_func_def(T_VOID, (yyvsp[(2) - (8)].sval), (yyvsp[(4) - (8)].node), (yyvsp[(7) - (8)].node));
     ;}
@@ -1937,21 +1953,21 @@ yyreduce:
   case 8:
 
 /* Line 1455 of yacc.c  */
-#line 410 "spp_parser.y"
+#line 426 "spp_parser.y"
     { (yyval.node) = NULL; ;}
     break;
 
   case 9:
 
 /* Line 1455 of yacc.c  */
-#line 411 "spp_parser.y"
+#line 427 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (1)].node); ;}
     break;
 
   case 10:
 
 /* Line 1455 of yacc.c  */
-#line 415 "spp_parser.y"
+#line 431 "spp_parser.y"
     {
         (yyval.node) = make_param((yyvsp[(1) - (2)].type_val), (yyvsp[(2) - (2)].sval));
     ;}
@@ -1960,7 +1976,7 @@ yyreduce:
   case 11:
 
 /* Line 1455 of yacc.c  */
-#line 418 "spp_parser.y"
+#line 434 "spp_parser.y"
     {
         (yyval.node) = append_list((yyvsp[(1) - (4)].node), make_param((yyvsp[(3) - (4)].type_val), (yyvsp[(4) - (4)].sval)));
     ;}
@@ -1969,133 +1985,133 @@ yyreduce:
   case 12:
 
 /* Line 1455 of yacc.c  */
-#line 424 "spp_parser.y"
+#line 440 "spp_parser.y"
     { (yyval.type_val) = T_INT; ;}
     break;
 
   case 13:
 
 /* Line 1455 of yacc.c  */
-#line 425 "spp_parser.y"
+#line 441 "spp_parser.y"
     { (yyval.type_val) = T_FLOAT; ;}
     break;
 
   case 14:
 
 /* Line 1455 of yacc.c  */
-#line 426 "spp_parser.y"
+#line 442 "spp_parser.y"
     { (yyval.type_val) = T_CHAR; ;}
     break;
 
   case 15:
 
 /* Line 1455 of yacc.c  */
-#line 427 "spp_parser.y"
+#line 443 "spp_parser.y"
     { (yyval.type_val) = T_VOID; ;}
     break;
 
   case 16:
 
 /* Line 1455 of yacc.c  */
-#line 431 "spp_parser.y"
+#line 447 "spp_parser.y"
     { (yyval.node) = NULL; ;}
     break;
 
   case 17:
 
 /* Line 1455 of yacc.c  */
-#line 432 "spp_parser.y"
+#line 448 "spp_parser.y"
     { (yyval.node) = append_list((yyvsp[(1) - (2)].node), (yyvsp[(2) - (2)].node)); ;}
     break;
 
   case 18:
 
 /* Line 1455 of yacc.c  */
-#line 436 "spp_parser.y"
+#line 452 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (2)].node); ;}
     break;
 
   case 19:
 
 /* Line 1455 of yacc.c  */
-#line 437 "spp_parser.y"
+#line 453 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (2)].node); ;}
     break;
 
   case 20:
 
 /* Line 1455 of yacc.c  */
-#line 438 "spp_parser.y"
+#line 454 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (2)].node); ;}
     break;
 
   case 21:
 
 /* Line 1455 of yacc.c  */
-#line 439 "spp_parser.y"
+#line 455 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (2)].node); ;}
     break;
 
   case 22:
 
 /* Line 1455 of yacc.c  */
-#line 440 "spp_parser.y"
+#line 456 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (1)].node); ;}
     break;
 
   case 23:
 
 /* Line 1455 of yacc.c  */
-#line 441 "spp_parser.y"
+#line 457 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (1)].node); ;}
     break;
 
   case 24:
 
 /* Line 1455 of yacc.c  */
-#line 442 "spp_parser.y"
+#line 458 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (1)].node); ;}
     break;
 
   case 25:
 
 /* Line 1455 of yacc.c  */
-#line 443 "spp_parser.y"
+#line 459 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (2)].node); ;}
     break;
 
   case 26:
 
 /* Line 1455 of yacc.c  */
-#line 444 "spp_parser.y"
+#line 460 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (2)].node); ;}
     break;
 
   case 27:
 
 /* Line 1455 of yacc.c  */
-#line 445 "spp_parser.y"
+#line 461 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (2)].node); ;}
     break;
 
   case 28:
 
 /* Line 1455 of yacc.c  */
-#line 446 "spp_parser.y"
+#line 462 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (2)].node); ;}
     break;
 
   case 29:
 
 /* Line 1455 of yacc.c  */
-#line 447 "spp_parser.y"
+#line 463 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (2)].node); ;}
     break;
 
   case 30:
 
 /* Line 1455 of yacc.c  */
-#line 448 "spp_parser.y"
+#line 464 "spp_parser.y"
     {
         fprintf(stderr, "Syntax Error: Invalid statement at line %d (recovered)\n", line);
         error_count++;
@@ -2107,21 +2123,21 @@ yyreduce:
   case 31:
 
 /* Line 1455 of yacc.c  */
-#line 458 "spp_parser.y"
+#line 474 "spp_parser.y"
     { (yyval.node) = make_decl((yyvsp[(1) - (2)].type_val), (yyvsp[(2) - (2)].sval), NULL); ;}
     break;
 
   case 32:
 
 /* Line 1455 of yacc.c  */
-#line 459 "spp_parser.y"
+#line 475 "spp_parser.y"
     { (yyval.node) = make_decl((yyvsp[(1) - (4)].type_val), (yyvsp[(2) - (4)].sval), (yyvsp[(4) - (4)].node)); ;}
     break;
 
   case 33:
 
 /* Line 1455 of yacc.c  */
-#line 460 "spp_parser.y"
+#line 476 "spp_parser.y"
     {
         (yyval.node) = make_arr_decl((yyvsp[(2) - (6)].type_val), (yyvsp[(3) - (6)].sval), (yyvsp[(5) - (6)].ival));
     ;}
@@ -2130,7 +2146,7 @@ yyreduce:
   case 34:
 
 /* Line 1455 of yacc.c  */
-#line 467 "spp_parser.y"
+#line 483 "spp_parser.y"
     {
         (yyval.node) = make_assign((yyvsp[(1) - (3)].sval), (yyvsp[(3) - (3)].node));
     ;}
@@ -2139,7 +2155,7 @@ yyreduce:
   case 35:
 
 /* Line 1455 of yacc.c  */
-#line 470 "spp_parser.y"
+#line 486 "spp_parser.y"
     {
         (yyval.node) = make_arr_assign((yyvsp[(1) - (6)].sval), (yyvsp[(3) - (6)].node), (yyvsp[(6) - (6)].node));
     ;}
@@ -2148,126 +2164,126 @@ yyreduce:
   case 36:
 
 /* Line 1455 of yacc.c  */
-#line 477 "spp_parser.y"
+#line 493 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (1)].node); ;}
     break;
 
   case 37:
 
 /* Line 1455 of yacc.c  */
-#line 478 "spp_parser.y"
+#line 494 "spp_parser.y"
     { (yyval.node) = make_binop(ADD, (yyvsp[(1) - (3)].node), (yyvsp[(3) - (3)].node)); ;}
     break;
 
   case 38:
 
 /* Line 1455 of yacc.c  */
-#line 479 "spp_parser.y"
+#line 495 "spp_parser.y"
     { (yyval.node) = make_binop(SUB, (yyvsp[(1) - (3)].node), (yyvsp[(3) - (3)].node)); ;}
     break;
 
   case 39:
 
 /* Line 1455 of yacc.c  */
-#line 483 "spp_parser.y"
+#line 499 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (1)].node); ;}
     break;
 
   case 40:
 
 /* Line 1455 of yacc.c  */
-#line 484 "spp_parser.y"
+#line 500 "spp_parser.y"
     { (yyval.node) = make_binop(MUL, (yyvsp[(1) - (3)].node), (yyvsp[(3) - (3)].node)); ;}
     break;
 
   case 41:
 
 /* Line 1455 of yacc.c  */
-#line 485 "spp_parser.y"
+#line 501 "spp_parser.y"
     { (yyval.node) = make_binop(DIV, (yyvsp[(1) - (3)].node), (yyvsp[(3) - (3)].node)); ;}
     break;
 
   case 42:
 
 /* Line 1455 of yacc.c  */
-#line 489 "spp_parser.y"
+#line 505 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (1)].node); ;}
     break;
 
   case 43:
 
 /* Line 1455 of yacc.c  */
-#line 490 "spp_parser.y"
+#line 506 "spp_parser.y"
     { (yyval.node) = make_sqrt_op((yyvsp[(3) - (4)].node)); ;}
     break;
 
   case 44:
 
 /* Line 1455 of yacc.c  */
-#line 491 "spp_parser.y"
+#line 507 "spp_parser.y"
     { (yyval.node) = make_unop(NOT, (yyvsp[(2) - (2)].node)); ;}
     break;
 
   case 45:
 
 /* Line 1455 of yacc.c  */
-#line 495 "spp_parser.y"
+#line 511 "spp_parser.y"
     { (yyval.node) = make_int_lit((yyvsp[(1) - (1)].ival)); ;}
     break;
 
   case 46:
 
 /* Line 1455 of yacc.c  */
-#line 496 "spp_parser.y"
+#line 512 "spp_parser.y"
     { (yyval.node) = make_float_lit((yyvsp[(1) - (1)].fval)); ;}
     break;
 
   case 47:
 
 /* Line 1455 of yacc.c  */
-#line 497 "spp_parser.y"
+#line 513 "spp_parser.y"
     { (yyval.node) = make_char_lit((yyvsp[(1) - (1)].cval)); ;}
     break;
 
   case 48:
 
 /* Line 1455 of yacc.c  */
-#line 498 "spp_parser.y"
+#line 514 "spp_parser.y"
     { (yyval.node) = make_string_lit((yyvsp[(1) - (1)].sval)); ;}
     break;
 
   case 49:
 
 /* Line 1455 of yacc.c  */
-#line 499 "spp_parser.y"
+#line 515 "spp_parser.y"
     { (yyval.node) = make_bool_lit(1); ;}
     break;
 
   case 50:
 
 /* Line 1455 of yacc.c  */
-#line 500 "spp_parser.y"
+#line 516 "spp_parser.y"
     { (yyval.node) = make_bool_lit(0); ;}
     break;
 
   case 51:
 
 /* Line 1455 of yacc.c  */
-#line 501 "spp_parser.y"
+#line 517 "spp_parser.y"
     { (yyval.node) = make_var((yyvsp[(1) - (1)].sval)); ;}
     break;
 
   case 52:
 
 /* Line 1455 of yacc.c  */
-#line 502 "spp_parser.y"
+#line 518 "spp_parser.y"
     { (yyval.node) = (yyvsp[(2) - (3)].node); ;}
     break;
 
   case 53:
 
 /* Line 1455 of yacc.c  */
-#line 503 "spp_parser.y"
+#line 519 "spp_parser.y"
     {
         (yyval.node) = make_func_call((yyvsp[(1) - (4)].sval), (yyvsp[(3) - (4)].node));
     ;}
@@ -2276,7 +2292,7 @@ yyreduce:
   case 54:
 
 /* Line 1455 of yacc.c  */
-#line 506 "spp_parser.y"
+#line 522 "spp_parser.y"
     {
         (yyval.node) = make_arr_access((yyvsp[(1) - (4)].sval), (yyvsp[(3) - (4)].node));
     ;}
@@ -2285,98 +2301,98 @@ yyreduce:
   case 55:
 
 /* Line 1455 of yacc.c  */
-#line 513 "spp_parser.y"
+#line 529 "spp_parser.y"
     { (yyval.node) = NULL; ;}
     break;
 
   case 56:
 
 /* Line 1455 of yacc.c  */
-#line 514 "spp_parser.y"
+#line 530 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (1)].node); ;}
     break;
 
   case 57:
 
 /* Line 1455 of yacc.c  */
-#line 518 "spp_parser.y"
+#line 534 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (1)].node); (yyval.node)->next = NULL; ;}
     break;
 
   case 58:
 
 /* Line 1455 of yacc.c  */
-#line 519 "spp_parser.y"
+#line 535 "spp_parser.y"
     { (yyval.node) = append_list((yyvsp[(1) - (3)].node), (yyvsp[(3) - (3)].node)); ;}
     break;
 
   case 59:
 
 /* Line 1455 of yacc.c  */
-#line 524 "spp_parser.y"
+#line 540 "spp_parser.y"
     { (yyval.node) = make_binop(EQ, (yyvsp[(1) - (3)].node), (yyvsp[(3) - (3)].node)); ;}
     break;
 
   case 60:
 
 /* Line 1455 of yacc.c  */
-#line 525 "spp_parser.y"
+#line 541 "spp_parser.y"
     { (yyval.node) = make_binop(NEQ, (yyvsp[(1) - (3)].node), (yyvsp[(3) - (3)].node)); ;}
     break;
 
   case 61:
 
 /* Line 1455 of yacc.c  */
-#line 526 "spp_parser.y"
+#line 542 "spp_parser.y"
     { (yyval.node) = make_binop(LT, (yyvsp[(1) - (3)].node), (yyvsp[(3) - (3)].node)); ;}
     break;
 
   case 62:
 
 /* Line 1455 of yacc.c  */
-#line 527 "spp_parser.y"
+#line 543 "spp_parser.y"
     { (yyval.node) = make_binop(GT, (yyvsp[(1) - (3)].node), (yyvsp[(3) - (3)].node)); ;}
     break;
 
   case 63:
 
 /* Line 1455 of yacc.c  */
-#line 528 "spp_parser.y"
+#line 544 "spp_parser.y"
     { (yyval.node) = make_binop(LE, (yyvsp[(1) - (3)].node), (yyvsp[(3) - (3)].node)); ;}
     break;
 
   case 64:
 
 /* Line 1455 of yacc.c  */
-#line 529 "spp_parser.y"
+#line 545 "spp_parser.y"
     { (yyval.node) = make_binop(GE, (yyvsp[(1) - (3)].node), (yyvsp[(3) - (3)].node)); ;}
     break;
 
   case 65:
 
 /* Line 1455 of yacc.c  */
-#line 530 "spp_parser.y"
+#line 546 "spp_parser.y"
     { (yyval.node) = make_binop(AND, (yyvsp[(1) - (3)].node), (yyvsp[(3) - (3)].node)); ;}
     break;
 
   case 66:
 
 /* Line 1455 of yacc.c  */
-#line 531 "spp_parser.y"
+#line 547 "spp_parser.y"
     { (yyval.node) = make_binop(OR, (yyvsp[(1) - (3)].node), (yyvsp[(3) - (3)].node)); ;}
     break;
 
   case 67:
 
 /* Line 1455 of yacc.c  */
-#line 532 "spp_parser.y"
+#line 548 "spp_parser.y"
     { (yyval.node) = (yyvsp[(2) - (3)].node); ;}
     break;
 
   case 68:
 
 /* Line 1455 of yacc.c  */
-#line 537 "spp_parser.y"
+#line 553 "spp_parser.y"
     {
         (yyval.node) = make_if((yyvsp[(3) - (7)].node), (yyvsp[(6) - (7)].node), NULL);
     ;}
@@ -2385,7 +2401,7 @@ yyreduce:
   case 69:
 
 /* Line 1455 of yacc.c  */
-#line 540 "spp_parser.y"
+#line 556 "spp_parser.y"
     {
         (yyval.node) = make_if((yyvsp[(3) - (11)].node), (yyvsp[(6) - (11)].node), (yyvsp[(10) - (11)].node));
     ;}
@@ -2394,7 +2410,7 @@ yyreduce:
   case 70:
 
 /* Line 1455 of yacc.c  */
-#line 547 "spp_parser.y"
+#line 563 "spp_parser.y"
     {
         (yyval.node) = make_while((yyvsp[(3) - (7)].node), (yyvsp[(6) - (7)].node));
     ;}
@@ -2403,7 +2419,7 @@ yyreduce:
   case 71:
 
 /* Line 1455 of yacc.c  */
-#line 554 "spp_parser.y"
+#line 570 "spp_parser.y"
     {
         (yyval.node) = make_for((yyvsp[(3) - (11)].node), (yyvsp[(5) - (11)].node), (yyvsp[(7) - (11)].node), (yyvsp[(10) - (11)].node));
     ;}
@@ -2412,70 +2428,70 @@ yyreduce:
   case 72:
 
 /* Line 1455 of yacc.c  */
-#line 560 "spp_parser.y"
+#line 576 "spp_parser.y"
     { (yyval.node) = (yyvsp[(1) - (1)].node); ;}
     break;
 
   case 73:
 
 /* Line 1455 of yacc.c  */
-#line 561 "spp_parser.y"
+#line 577 "spp_parser.y"
     { (yyval.node) = make_inc((yyvsp[(1) - (2)].sval)); ;}
     break;
 
   case 74:
 
 /* Line 1455 of yacc.c  */
-#line 562 "spp_parser.y"
+#line 578 "spp_parser.y"
     { (yyval.node) = make_dec((yyvsp[(1) - (2)].sval)); ;}
     break;
 
   case 75:
 
 /* Line 1455 of yacc.c  */
-#line 567 "spp_parser.y"
+#line 583 "spp_parser.y"
     { (yyval.node) = make_print((yyvsp[(3) - (4)].node)); ;}
     break;
 
   case 76:
 
 /* Line 1455 of yacc.c  */
-#line 572 "spp_parser.y"
+#line 588 "spp_parser.y"
     { (yyval.node) = make_input((yyvsp[(3) - (4)].sval)); ;}
     break;
 
   case 77:
 
 /* Line 1455 of yacc.c  */
-#line 577 "spp_parser.y"
+#line 593 "spp_parser.y"
     { (yyval.node) = make_return((yyvsp[(2) - (2)].node)); ;}
     break;
 
   case 78:
 
 /* Line 1455 of yacc.c  */
-#line 578 "spp_parser.y"
+#line 594 "spp_parser.y"
     { (yyval.node) = make_return(NULL); ;}
     break;
 
   case 79:
 
 /* Line 1455 of yacc.c  */
-#line 582 "spp_parser.y"
+#line 598 "spp_parser.y"
     { (yyval.node) = make_break_node(); ;}
     break;
 
   case 80:
 
 /* Line 1455 of yacc.c  */
-#line 583 "spp_parser.y"
+#line 599 "spp_parser.y"
     { (yyval.node) = make_continue_node(); ;}
     break;
 
   case 81:
 
 /* Line 1455 of yacc.c  */
-#line 587 "spp_parser.y"
+#line 603 "spp_parser.y"
     {
         (yyval.node) = make_func_call((yyvsp[(1) - (4)].sval), (yyvsp[(3) - (4)].node));
     ;}
@@ -2484,21 +2500,21 @@ yyreduce:
   case 82:
 
 /* Line 1455 of yacc.c  */
-#line 594 "spp_parser.y"
+#line 610 "spp_parser.y"
     { (yyval.node) = make_inc((yyvsp[(1) - (2)].sval)); ;}
     break;
 
   case 83:
 
 /* Line 1455 of yacc.c  */
-#line 595 "spp_parser.y"
+#line 611 "spp_parser.y"
     { (yyval.node) = make_dec((yyvsp[(1) - (2)].sval)); ;}
     break;
 
 
 
 /* Line 1455 of yacc.c  */
-#line 2502 "spp_parser.tab.c"
+#line 2518 "spp_parser.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -2710,7 +2726,7 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 598 "spp_parser.y"
+#line 614 "spp_parser.y"
 
 
 /* =============================================================
@@ -2751,7 +2767,12 @@ ExecResult eval_expr(ASTNode *node) {
         if (idx == -1) {
             fprintf(stderr, "Runtime Error at line %d: Undefined variable '%s'\n", node->lineno, node->name);
             error_count++;
-            return make_res(0, T_INT);
+            r.is_error = 1; return r;
+        }
+        if (sym_table[idx].is_array) {
+            fprintf(stderr, "Semantic Error at line %d: '%s' is an array, use subscript []\n", node->lineno, node->name);
+            error_count++;
+            r.is_error = 1; return r;
         }
         if (!sym_table[idx].is_init && !sym_table[idx].is_function) {
             fprintf(stderr, "Warning at line %d: '%s' used before initialization\n", node->lineno, node->name);
@@ -2765,20 +2786,21 @@ ExecResult eval_expr(ASTNode *node) {
         if (idx == -1) {
             fprintf(stderr, "Runtime Error at line %d: Undefined array '%s'\n", node->lineno, node->name);
             error_count++;
-            return make_res(0, T_INT);
+            r.is_error = 1; return r;
         }
         if (!sym_table[idx].is_array) {
             fprintf(stderr, "Runtime Error at line %d: '%s' is not an array\n", node->lineno, node->name);
             error_count++;
-            return make_res(0, T_INT);
+            r.is_error = 1; return r;
         }
         ExecResult ir = eval_expr(node->left);
+        if (ir.is_error) { r.is_error = 1; return r; }
         int ai = (int)ir.value;
         if (ai < 0 || ai >= sym_table[idx].arr_size) {
             fprintf(stderr, "Runtime Error at line %d: Index %d out of bounds for '%s[%d]'\n",
                     node->lineno, ai, node->name, sym_table[idx].arr_size);
             error_count++;
-            return make_res(0, sym_table[idx].type);
+            r.is_error = 1; return r;
         }
         return make_res(sym_table[idx].arr_vals[ai], sym_table[idx].type);
     }
@@ -2786,6 +2808,7 @@ ExecResult eval_expr(ASTNode *node) {
     case N_BINOP: {
         ExecResult lv = eval_expr(node->left);
         ExecResult rv = eval_expr(node->right);
+        if (lv.is_error || rv.is_error) { r.is_error = 1; return r; }
         VarType rt = (lv.type == T_FLOAT || rv.type == T_FLOAT) ? T_FLOAT : T_INT;
         switch (node->op) {
             case ADD: return make_res(lv.value + rv.value, rt);
@@ -2795,7 +2818,7 @@ ExecResult eval_expr(ASTNode *node) {
                 if (rv.value == 0) {
                     fprintf(stderr, "Runtime Error at line %d: Division by zero\n", node->lineno);
                     error_count++;
-                    return make_res(0, rt);
+                    r.is_error = 1; return r;
                 }
                 /* Integer division when both operands are int */
                 if (lv.type == T_INT && rv.type == T_INT)
@@ -2815,16 +2838,18 @@ ExecResult eval_expr(ASTNode *node) {
 
     case N_UNOP: {
         ExecResult ov = eval_expr(node->left);
+        if (ov.is_error) { r.is_error = 1; return r; }
         if (node->op == NOT) return make_res(!((int)ov.value), T_INT);
         break;
     }
 
     case N_SQRT_OP: {
         ExecResult av = eval_expr(node->left);
+        if (av.is_error) { r.is_error = 1; return r; }
         if (av.value < 0) {
             fprintf(stderr, "Runtime Error at line %d: sqrt of negative number\n", node->lineno);
             error_count++;
-            return make_res(0, T_FLOAT);
+            r.is_error = 1; return r;
         }
         return make_res(sqrt(av.value), T_FLOAT);
     }
@@ -2835,7 +2860,7 @@ ExecResult eval_expr(ASTNode *node) {
         if (idx == -1 || !sym_table[idx].is_function) {
             fprintf(stderr, "Runtime Error at line %d: Undefined function '%s'\n", node->lineno, node->name);
             error_count++;
-            return make_res(0, T_INT);
+            r.is_error = 1; return r;
         }
         ASTNode *func = sym_table[idx].func_node;
 
@@ -2849,19 +2874,22 @@ ExecResult eval_expr(ASTNode *node) {
             fprintf(stderr, "Semantic Error at line %d: '%s' expects %d args, got %d\n",
                     node->lineno, node->name, sym_table[idx].param_count, argc);
             error_count++;
-            return make_res(0, T_INT);
+            r.is_error = 1; return r;
         }
 
         /* Evaluate arguments BEFORE pushing scope */
         double arg_vals[64];
         VarType arg_types[64];
+        int arg_error = 0;
         a = node->args;
         for (int i = 0; i < argc; i++) {
             ExecResult av = eval_expr(a);
+            if (av.is_error) arg_error = 1;
             arg_vals[i] = av.value;
             arg_types[i] = av.type;
             a = a->next;
         }
+        if (arg_error) { r.is_error = 1; return r; }
 
         /* Push new scope, bind parameters */
         scope_push();
@@ -2874,8 +2902,7 @@ ExecResult eval_expr(ASTNode *node) {
                     if ((VarType)param->var_type == T_FLOAT && arg_types[i] == T_INT) {
                         /* implicit int->float: OK */
                     } else if ((VarType)param->var_type == T_INT && arg_types[i] == T_FLOAT) {
-                        printf("  [Type Warning] Narrowing arg dosomik -> purno in call to %s()\n", node->name);
-                        warning_count++;
+                        TRACE("  [Type Warning] Narrowing arg dosomik -> purno in call to %s()\n", node->name);
                         arg_vals[i] = (int)arg_vals[i];
                     }
                 }
@@ -2914,20 +2941,23 @@ ExecResult exec_node(ASTNode *node) {
         if (idx != -1) {
             if (node->left) {
                 ExecResult val = eval_expr(node->left);
+                if (val.is_error) {
+                    TRACE("  [Declare] %s (init failed)\n", node->name);
+                    return make_res(0, T_VOID);
+                }
                 if (vt != val.type && !val.is_string) {
                     if (vt == T_FLOAT && val.type == T_INT) {
-                        printf("  [Type Info] Implicit: purno -> dosomik at line %d\n", node->lineno);
+                        TRACE("  [Type Info] Implicit: purno -> dosomik at line %d\n", node->lineno);
                     } else if (vt == T_INT && val.type == T_FLOAT) {
-                        printf("  [Type Warning] Narrowing: dosomik -> purno at line %d\n", node->lineno);
-                        warning_count++;
+                        TRACE("  [Type Warning] Narrowing: dosomik -> purno at line %d\n", node->lineno);
                         val.value = (int)val.value;
                     }
                 }
                 sym_table[idx].value = val.value;
                 sym_table[idx].is_init = 1;
-                printf("  [Declare] %s = %.4g\n", node->name, val.value);
+                TRACE("  [Declare] %s = %.4g\n", node->name, val.value);
             } else {
-                printf("  [Declare] %s : %s (uninitialized)\n", node->name, type_name(vt));
+                TRACE("  [Declare] %s : %s (uninitialized)\n", node->name, type_name(vt));
             }
         }
         return make_res(0, T_VOID);
@@ -2940,7 +2970,7 @@ ExecResult exec_node(ASTNode *node) {
             sym_table[idx].is_array = 1;
             sym_table[idx].arr_size = node->arr_size;
             sym_table[idx].is_init = 1;
-            printf("  [Declare Array] %s[%d] : %s\n", node->name, node->arr_size, type_name(vt));
+            TRACE("  [Declare Array] %s[%d] : %s\n", node->name, node->arr_size, type_name(vt));
         }
         return make_res(0, T_VOID);
     }
@@ -2950,19 +2980,26 @@ ExecResult exec_node(ASTNode *node) {
         if (idx == -1) {
             fprintf(stderr, "Semantic Error at line %d: Undeclared variable '%s'\n", node->lineno, node->name);
             error_count++;
+        } else if (sym_table[idx].is_function) {
+            fprintf(stderr, "Semantic Error at line %d: Cannot assign to function '%s'\n", node->lineno, node->name);
+            error_count++;
+        } else if (sym_table[idx].is_array) {
+            fprintf(stderr, "Semantic Error at line %d: Cannot assign to array '%s' without subscript\n", node->lineno, node->name);
+            error_count++;
         } else {
             ExecResult val = eval_expr(node->left);
-            if (sym_table[idx].type != val.type && !val.is_string) {
-                if (sym_table[idx].type == T_FLOAT && val.type == T_INT) {
-                    /* implicit OK */
-                } else if (sym_table[idx].type == T_INT && val.type == T_FLOAT) {
-                    printf("  [Type Warning] Narrowing: dosomik -> purno at line %d\n", node->lineno);
-                    warning_count++;
-                    val.value = (int)val.value;
+            if (!val.is_error) {
+                if (sym_table[idx].type != val.type && !val.is_string) {
+                    if (sym_table[idx].type == T_FLOAT && val.type == T_INT) {
+                        /* implicit OK */
+                    } else if (sym_table[idx].type == T_INT && val.type == T_FLOAT) {
+                        TRACE("  [Type Warning] Narrowing: dosomik -> purno at line %d\n", node->lineno);
+                        val.value = (int)val.value;
+                    }
                 }
+                sym_table[idx].value = val.value;
+                sym_table[idx].is_init = 1;
             }
-            sym_table[idx].value = val.value;
-            sym_table[idx].is_init = 1;
         }
         return make_res(0, T_VOID);
     }
@@ -2977,6 +3014,7 @@ ExecResult exec_node(ASTNode *node) {
             error_count++;
         } else {
             ExecResult ir = eval_expr(node->left);
+            if (ir.is_error) { return make_res(0, T_VOID); }
             int ai = (int)ir.value;
             if (ai < 0 || ai >= sym_table[idx].arr_size) {
                 fprintf(stderr, "Runtime Error at line %d: Index %d out of bounds for '%s[%d]'\n",
@@ -2984,8 +3022,10 @@ ExecResult exec_node(ASTNode *node) {
                 error_count++;
             } else {
                 ExecResult val = eval_expr(node->right);
-                sym_table[idx].arr_vals[ai] = val.value;
-                printf("  [Array Assign] %s[%d] = %.4g\n", node->name, ai, val.value);
+                if (!val.is_error) {
+                    sym_table[idx].arr_vals[ai] = val.value;
+                    TRACE("  [Array Assign] %s[%d] = %.4g\n", node->name, ai, val.value);
+                }
             }
         }
         return make_res(0, T_VOID);
@@ -2994,24 +3034,26 @@ ExecResult exec_node(ASTNode *node) {
     /* -------- IF / ELSE: Execute ONLY the correct branch -------- */
     case N_IF: {
         ExecResult cond = eval_expr(node->left);
+        if (cond.is_error) return make_res(0, T_VOID);
         if ((int)cond.value) {
-            printf("  [If] TRUE at line %d\n", node->lineno);
+            TRACE("  [If] TRUE at line %d\n", node->lineno);
             return exec_list(node->body);
         } else if (node->right) {
-            printf("  [Else] at line %d\n", node->lineno);
+            TRACE("  [Else] at line %d\n", node->lineno);
             return exec_list(node->right);
         } else {
-            printf("  [If] FALSE, skipped at line %d\n", node->lineno);
+            TRACE("  [If] FALSE, skipped at line %d\n", node->lineno);
         }
         return make_res(0, T_VOID);
     }
 
     /* -------- WHILE: Real iterative loop -------- */
     case N_WHILE: {
-        printf("  [While] entering loop at line %d\n", node->lineno);
+        TRACE("  [While] entering loop at line %d\n", node->lineno);
         int iters = 0;
         while (1) {
             ExecResult cond = eval_expr(node->left);
+            if (cond.is_error) break;
             if (!(int)cond.value) break;
             scope_push();  /* new scope for loop body (allows re-declaration) */
             ExecResult body_r = exec_list(node->body);
@@ -3024,17 +3066,18 @@ ExecResult exec_node(ASTNode *node) {
                 error_count++; break;
             }
         }
-        printf("  [While] exited after %d iterations\n", iters);
+        TRACE("  [While] exited after %d iterations\n", iters);
         return make_res(0, T_VOID);
     }
 
     /* -------- FOR: Real iterative loop -------- */
     case N_FOR: {
-        printf("  [For] entering loop at line %d\n", node->lineno);
+        TRACE("  [For] entering loop at line %d\n", node->lineno);
         exec_node(node->right);  /* init */
         int iters = 0;
         while (1) {
             ExecResult cond = eval_expr(node->left);
+            if (cond.is_error) break;
             if (!(int)cond.value) break;
             scope_push();  /* new scope for loop body */
             ExecResult body_r = exec_list(node->body);
@@ -3048,15 +3091,14 @@ ExecResult exec_node(ASTNode *node) {
                 error_count++; break;
             }
         }
-        printf("  [For] exited after %d iterations\n", iters);
+        TRACE("  [For] exited after %d iterations\n", iters);
         return make_res(0, T_VOID);
     }
 
     /* -------- PRINT -------- */
     case N_PRINT: {
-        int errs_before = error_count;
         ExecResult val = eval_expr(node->left);
-        if (error_count > errs_before) {
+        if (val.is_error) {
             /* Expression evaluation failed; skip printing garbage */
             return make_res(0, T_VOID);
         }
@@ -3086,7 +3128,7 @@ ExecResult exec_node(ASTNode *node) {
             if (scanf("%lf", &val) == 1) {
                 sym_table[idx].value = val;
                 sym_table[idx].is_init = 1;
-                printf("  [Input] %s = %.4g\n", node->name, val);
+                TRACE("  [Input] %s = %.4g\n", node->name, val);
             } else {
                 fprintf(stderr, "Runtime Error: Invalid input for '%s'\n", node->name);
                 error_count++;
@@ -3104,7 +3146,7 @@ ExecResult exec_node(ASTNode *node) {
             r = make_res(0, T_VOID);
         }
         r.is_return = 1;
-        printf("  [Return] %.4g\n", r.value);
+        TRACE("  [Return] %.4g\n", r.value);
         return r;
     }
 
@@ -3112,13 +3154,13 @@ ExecResult exec_node(ASTNode *node) {
     case N_BREAK: {
         ExecResult r = make_res(0, T_VOID);
         r.is_break = 1;
-        printf("  [Break]\n");
+        TRACE("  [Break]\n");
         return r;
     }
     case N_CONTINUE: {
         ExecResult r = make_res(0, T_VOID);
         r.is_continue = 1;
-        printf("  [Continue]\n");
+        TRACE("  [Continue]\n");
         return r;
     }
 
@@ -3192,12 +3234,12 @@ void exec_program(ASTNode *root) {
     f = root;
     while (f) {
         if (f->ntype == N_FUNC_DEF && strcmp(f->name, "main") == 0) {
-            printf("\n--- Executing main() ---\n");
+            TRACE("\n--- Executing main() ---\n");
             scope_push();
             ExecResult r = exec_list(f->body);
-            printf("--- main() finished ---\n");
+            TRACE("--- main() finished ---\n");
             if (r.is_return) {
-                printf("  Program returned: %d\n", (int)r.value);
+                TRACE("  Program returned: %d\n", (int)r.value);
             }
             /* Print symbol table BEFORE popping scope (to show local vars) */
             print_sym_table(stdout);
@@ -3210,6 +3252,267 @@ void exec_program(ASTNode *root) {
     }
     fprintf(stderr, "Error: No main() function found!\n");
     error_count++;
+}
+
+/* =============================================================
+   SEMANTIC VALIDATION PASS — Static checks before execution
+   ============================================================= */
+
+/* Forward declarations for semantic pass */
+VarType infer_expr_type(ASTNode *node);
+void semantic_check_node(ASTNode *node);
+void semantic_check_list(ASTNode *list);
+
+/* Infer the type of an expression and report semantic errors */
+VarType infer_expr_type(ASTNode *node) {
+    if (!node) return T_INT;
+    switch (node->ntype) {
+    case N_INT_LIT: case N_BOOL_LIT: return T_INT;
+    case N_FLOAT_LIT: return T_FLOAT;
+    case N_CHAR_LIT: return T_CHAR;
+    case N_STRING_LIT: return T_VOID;
+    case N_VAR: {
+        int idx = sym_find(node->name);
+        if (idx == -1) {
+            fprintf(stderr, "Semantic Error at line %d: Undeclared variable '%s'\n", node->lineno, node->name);
+            error_count++;
+            return T_INT;
+        }
+        if (sym_table[idx].is_function) {
+            fprintf(stderr, "Semantic Error at line %d: '%s' is a function, not a variable\n", node->lineno, node->name);
+            error_count++;
+        }
+        if (sym_table[idx].is_array) {
+            fprintf(stderr, "Semantic Error at line %d: '%s' is an array, use subscript []\n", node->lineno, node->name);
+            error_count++;
+        }
+        return sym_table[idx].type;
+    }
+    case N_ARR_ACCESS: {
+        int idx = sym_find(node->name);
+        if (idx == -1) {
+            fprintf(stderr, "Semantic Error at line %d: Undeclared array '%s'\n", node->lineno, node->name);
+            error_count++;
+            return T_INT;
+        }
+        if (!sym_table[idx].is_array) {
+            fprintf(stderr, "Semantic Error at line %d: '%s' is not an array\n", node->lineno, node->name);
+            error_count++;
+        }
+        infer_expr_type(node->left);  /* check index expression */
+        return sym_table[idx].type;
+    }
+    case N_BINOP: {
+        VarType lt = infer_expr_type(node->left);
+        VarType rt = infer_expr_type(node->right);
+        switch (node->op) {
+            case EQ: case NEQ: case LT: case GT: case LE: case GE:
+            case AND: case OR:
+                return T_INT;
+        }
+        return (lt == T_FLOAT || rt == T_FLOAT) ? T_FLOAT : lt;
+    }
+    case N_UNOP:
+        infer_expr_type(node->left);
+        return T_INT;
+    case N_SQRT_OP:
+        infer_expr_type(node->left);
+        return T_FLOAT;
+    case N_FUNC_CALL: {
+        int idx = sym_find(node->name);
+        if (idx == -1 || !sym_table[idx].is_function) {
+            fprintf(stderr, "Semantic Error at line %d: Undeclared function '%s'\n", node->lineno, node->name);
+            error_count++;
+            return T_INT;
+        }
+        /* Count and check arguments */
+        int argc = 0;
+        ASTNode *a = node->args;
+        while (a) { argc++; a = a->next; }
+        if (argc != sym_table[idx].param_count) {
+            fprintf(stderr, "Semantic Error at line %d: '%s' expects %d args, got %d\n",
+                    node->lineno, node->name, sym_table[idx].param_count, argc);
+            error_count++;
+        }
+        /* Type-check each argument against parameter types */
+        a = node->args;
+        ASTNode *param = sym_table[idx].func_node ? sym_table[idx].func_node->params : NULL;
+        while (a) {
+            VarType at = infer_expr_type(a);
+            if (param) {
+                if ((VarType)param->var_type == T_INT && at == T_FLOAT) {
+                    fprintf(stderr, "Warning at line %d: Narrowing dosomik -> purno for arg '%s' in call to '%s'\n",
+                            node->lineno, param->name, node->name);
+                    warning_count++;
+                }
+                param = param->next;
+            }
+            a = a->next;
+        }
+        return sym_table[idx].type;
+    }
+    default: return T_INT;
+    }
+}
+
+/* Check a single statement node for semantic errors */
+void semantic_check_node(ASTNode *node) {
+    if (!node) return;
+    switch (node->ntype) {
+    case N_DECL: {
+        int idx = sym_add(node->name, (VarType)node->var_type, node->lineno);
+        if (idx != -1 && node->left) {
+            VarType et = infer_expr_type(node->left);
+            if ((VarType)node->var_type == T_INT && et == T_FLOAT) {
+                fprintf(stderr, "Warning at line %d: Narrowing dosomik -> purno in declaration of '%s'\n",
+                        node->lineno, node->name);
+                warning_count++;
+            }
+        }
+        break;
+    }
+    case N_ARR_DECL: {
+        int idx = sym_add(node->name, (VarType)node->var_type, node->lineno);
+        if (idx != -1) {
+            sym_table[idx].is_array = 1;
+            sym_table[idx].arr_size = node->arr_size;
+        }
+        break;
+    }
+    case N_ASSIGN: {
+        int idx = sym_find(node->name);
+        if (idx == -1) {
+            fprintf(stderr, "Semantic Error at line %d: Undeclared variable '%s'\n", node->lineno, node->name);
+            error_count++;
+        } else {
+            if (sym_table[idx].is_function) {
+                fprintf(stderr, "Semantic Error at line %d: Cannot assign to function '%s'\n",
+                        node->lineno, node->name);
+                error_count++;
+            }
+            if (sym_table[idx].is_array) {
+                fprintf(stderr, "Semantic Error at line %d: Cannot assign to array '%s' without subscript\n",
+                        node->lineno, node->name);
+                error_count++;
+            }
+            VarType et = infer_expr_type(node->left);
+            if (idx >= 0 && !sym_table[idx].is_function && !sym_table[idx].is_array
+                && sym_table[idx].type == T_INT && et == T_FLOAT) {
+                fprintf(stderr, "Warning at line %d: Narrowing dosomik -> purno in assignment to '%s'\n",
+                        node->lineno, node->name);
+                warning_count++;
+            }
+        }
+        break;
+    }
+    case N_ARR_ASSIGN: {
+        int idx = sym_find(node->name);
+        if (idx == -1) {
+            fprintf(stderr, "Semantic Error at line %d: Undeclared array '%s'\n", node->lineno, node->name);
+            error_count++;
+        } else if (!sym_table[idx].is_array) {
+            fprintf(stderr, "Semantic Error at line %d: '%s' is not an array\n", node->lineno, node->name);
+            error_count++;
+        }
+        infer_expr_type(node->left);   /* index */
+        infer_expr_type(node->right);  /* value */
+        break;
+    }
+    case N_IF:
+        infer_expr_type(node->left);    /* condition */
+        semantic_check_list(node->body);
+        if (node->right) semantic_check_list(node->right);
+        break;
+    case N_WHILE:
+        infer_expr_type(node->left);    /* condition */
+        scope_push();
+        semantic_check_list(node->body);
+        scope_pop();
+        break;
+    case N_FOR:
+        semantic_check_node(node->right);   /* init */
+        infer_expr_type(node->left);         /* condition */
+        scope_push();
+        semantic_check_list(node->body);
+        semantic_check_node(node->update);   /* update */
+        scope_pop();
+        break;
+    case N_PRINT:
+        infer_expr_type(node->left);
+        break;
+    case N_INPUT: {
+        int idx = sym_find(node->name);
+        if (idx == -1) {
+            fprintf(stderr, "Semantic Error at line %d: Undeclared variable '%s' for input\n",
+                    node->lineno, node->name);
+            error_count++;
+        }
+        break;
+    }
+    case N_RETURN:
+        if (node->left) infer_expr_type(node->left);
+        break;
+    case N_INC: case N_DEC: {
+        int idx = sym_find(node->name);
+        if (idx == -1) {
+            fprintf(stderr, "Semantic Error at line %d: Undeclared variable '%s'\n",
+                    node->lineno, node->name);
+            error_count++;
+        }
+        break;
+    }
+    case N_FUNC_CALL:
+        infer_expr_type(node);  /* reuse function call type-checking */
+        break;
+    default: break;
+    }
+}
+
+/* Check a list of statements */
+void semantic_check_list(ASTNode *list) {
+    ASTNode *s = list;
+    while (s) {
+        semantic_check_node(s);
+        s = s->next;
+    }
+}
+
+/* Semantic validation entry point */
+void semantic_check_program(ASTNode *root) {
+    /* Pass 1: Register all non-main functions */
+    ASTNode *f = root;
+    while (f) {
+        if (f->ntype == N_FUNC_DEF && strcmp(f->name, "main") != 0) {
+            int idx = sym_add(f->name, (VarType)f->var_type, f->lineno);
+            if (idx != -1) {
+                sym_table[idx].is_function = 1;
+                sym_table[idx].func_node = f;
+                int pc = 0;
+                ASTNode *p = f->params;
+                while (p) { pc++; p = p->next; }
+                sym_table[idx].param_count = pc;
+            }
+        }
+        f = f->next;
+    }
+
+    /* Pass 2: Check each function body */
+    f = root;
+    while (f) {
+        if (f->ntype == N_FUNC_DEF) {
+            scope_push();
+            /* Add parameters to scope */
+            ASTNode *p = f->params;
+            while (p) {
+                int pidx = sym_add(p->name, (VarType)p->var_type, p->lineno);
+                if (pidx != -1) sym_table[pidx].is_init = 1;
+                p = p->next;
+            }
+            semantic_check_list(f->body);
+            scope_pop();
+        }
+        f = f->next;
+    }
 }
 
 /* =============================================================
@@ -3903,9 +4206,9 @@ void print_sym_table(FILE *f) {
    ============================================================= */
 int main(int argc, char *argv[]) {
     printf("============================================\n");
-    printf("       S++ Compiler (SPP) v2.0\n");
+    printf("       S++ Compiler (SPP) v3.0\n");
     printf("  Bangla-Keyword Programming Language\n");
-    printf("  Architecture: AST + Interpreter + TAC\n");
+    printf("  Architecture: AST + Semantic + Interpreter + TAC\n");
     printf("============================================\n");
 
     char *in_file = "input.txt";
@@ -3936,31 +4239,49 @@ int main(int argc, char *argv[]) {
     }
     printf("[Phase 1] Parsing complete. AST built successfully.\n");
 
-    /* Phase 2: Execute the program via AST interpretation */
-    printf("\n[Phase 2] Executing program...\n");
-    errors_before_exec = error_count;  /* snapshot so exec_list detects NEW errors */
-    exec_program(ast_root);
+    /* Phase 2: Semantic analysis */
+    printf("\n[Phase 2] Semantic analysis...\n");
+    semantic_check_program(ast_root);
+    if (error_count > 0) {
+        printf("[Phase 2] Found %d semantic error(s).\n", error_count);
+    } else {
+        printf("[Phase 2] Semantic analysis passed.\n");
+    }
+    sym_reset();  /* clean up symbol table for execution phase */
+
+    /* Count functions in AST */
+    int func_count = 0;
+    { ASTNode *fc = ast_root; while (fc) { if (fc->ntype == N_FUNC_DEF) func_count++; fc = fc->next; } }
+    int exec_halted = 0;
+
+    /* Phase 3: Execute the program via AST interpretation */
+    if (error_count == 0) {
+        printf("\n[Phase 3] Executing program...\n");
+        errors_before_exec = error_count;  /* snapshot so exec_list detects NEW errors */
+        exec_program(ast_root);
+        if (error_count > errors_before_exec) exec_halted = 1;
+    }
 
     if (error_count == 0) {
-        /* Phase 3: Generate TAC from AST */
-        printf("\n[Phase 3] Generating intermediate code...\n");
+        /* Phase 4: Generate TAC from AST */
+        printf("\n[Phase 4] Generating intermediate code...\n");
         gen_program_tac(ast_root);
         print_tac(stdout, "INTERMEDIATE CODE (Three-Address Code)");
         print_tac(output_file, "INTERMEDIATE CODE (Three-Address Code)");
 
-        /* Phase 4: Optimize */
-        printf("\n[Phase 4] Optimizing...\n");
+        /* Phase 5: Optimize */
+        printf("\n[Phase 5] Optimizing...\n");
         optimize_tac();
         print_tac(stdout, "OPTIMIZED CODE (Constant Folding + Dead Code Elim)");
         print_tac(output_file, "OPTIMIZED CODE (Constant Folding + Dead Code Elim)");
 
-        /* Phase 5: C Code Generation */
-        printf("\n[Phase 5] Generating equivalent C code...\n");
+        /* Phase 6: C Code Generation */
+        printf("\n[Phase 6] Generating equivalent C code...\n");
         gen_c_program(stdout, ast_root);
         gen_c_program(output_file, ast_root);
     } else {
-        printf("\n[Phase 3-5] Skipped -- %d error(s) detected, no code generation.\n", error_count);
-        fprintf(output_file, "\n[Phase 3-5] Skipped -- %d error(s) detected, no code generation.\n", error_count);
+        printf("\n[Phase 4-6] Skipped -- %d error(s) detected, no code generation.\n", error_count);
+        fprintf(output_file, "\n[Phase 4-6] Skipped -- %d error(s) detected, no code generation.\n", error_count);
     }
 
     /* Flush stderr so errors appear before summary */
@@ -3970,23 +4291,27 @@ int main(int argc, char *argv[]) {
     printf("\n============================================\n");
     printf("           COMPILATION SUMMARY\n");
     printf("============================================\n");
-    printf("  Errors   : %d\n", error_count);
-    printf("  Warnings : %d\n", warning_count);
-    printf("  Symbols  : %d\n", final_sym_count);
-    printf("  TAC Lines: %d\n", tac_count);
-    printf("  AST Nodes: %d\n", node_count);
-    printf("  Status   : %s\n", (error_count == 0) ? "SUCCESS" : "FAILED");
+    printf("  Errors     : %d\n", error_count);
+    printf("  Warnings   : %d\n", warning_count);
+    printf("  Functions  : %d\n", func_count);
+    printf("  Symbols    : %d\n", final_sym_count);
+    printf("  TAC Lines  : %d\n", tac_count);
+    printf("  AST Nodes  : %d\n", node_count);
+    printf("  Exec Halted: %s\n", exec_halted ? "Yes" : "No");
+    printf("  Status     : %s\n", (error_count == 0) ? "SUCCESS" : "FAILED");
     printf("============================================\n");
 
     fprintf(output_file, "\n============================================\n");
     fprintf(output_file, "           COMPILATION SUMMARY\n");
     fprintf(output_file, "============================================\n");
-    fprintf(output_file, "  Errors   : %d\n", error_count);
-    fprintf(output_file, "  Warnings : %d\n", warning_count);
-    fprintf(output_file, "  Symbols  : %d\n", final_sym_count);
-    fprintf(output_file, "  TAC Lines: %d\n", tac_count);
-    fprintf(output_file, "  AST Nodes: %d\n", node_count);
-    fprintf(output_file, "  Status   : %s\n", (error_count == 0) ? "SUCCESS" : "FAILED");
+    fprintf(output_file, "  Errors     : %d\n", error_count);
+    fprintf(output_file, "  Warnings   : %d\n", warning_count);
+    fprintf(output_file, "  Functions  : %d\n", func_count);
+    fprintf(output_file, "  Symbols    : %d\n", final_sym_count);
+    fprintf(output_file, "  TAC Lines  : %d\n", tac_count);
+    fprintf(output_file, "  AST Nodes  : %d\n", node_count);
+    fprintf(output_file, "  Exec Halted: %s\n", exec_halted ? "Yes" : "No");
+    fprintf(output_file, "  Status     : %s\n", (error_count == 0) ? "SUCCESS" : "FAILED");
     fprintf(output_file, "============================================\n");
 
     fclose(in);

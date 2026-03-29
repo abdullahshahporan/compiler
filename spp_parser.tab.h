@@ -99,7 +99,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 331 "spp_parser.y"
+#line 347 "spp_parser.y"
 
     int ival;
     double fval;

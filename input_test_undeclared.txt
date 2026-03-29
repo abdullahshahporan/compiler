@@ -1,0 +1,10 @@
+// Test: Undeclared variable detection
+// Expected: Semantic error for 'z' (undeclared)
+
+purno main() shuru
+    purno x = 10;
+    purno y = 20;
+    z = x jog y;
+    dekhao(z);
+    ferot 0;
+shesh

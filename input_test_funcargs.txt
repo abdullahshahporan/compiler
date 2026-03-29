@@ -1,0 +1,12 @@
+// Test: Wrong function argument count
+// Expected: Semantic error - 'add' expects 2 args, got 3
+
+purno add(purno a, purno b) shuru
+    ferot a jog b;
+shesh
+
+purno main() shuru
+    purno result = add(1, 2, 3);
+    dekhao(result);
+    ferot 0;
+shesh

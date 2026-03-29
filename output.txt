@@ -488,10 +488,12 @@ int main() {
 ============================================
            COMPILATION SUMMARY
 ============================================
-  Errors   : 0
-  Warnings : 0
-  Symbols  : 17
-  TAC Lines: 159
-  AST Nodes: 212
-  Status   : SUCCESS
+  Errors     : 0
+  Warnings   : 0
+  Functions  : 3
+  Symbols    : 17
+  TAC Lines  : 159
+  AST Nodes  : 212
+  Exec Halted: No
+  Status     : SUCCESS
 ============================================
