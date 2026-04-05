@@ -1,0 +1,18 @@
+# Generated files
+spp_parser.tab.c
+spp_parser.tab.h
+spp_parser.output
+lex.yy.c
+
+# Build artifacts
+*.o
+src/*.o
+spp_compiler.exe
+spp_compiler
+
+# Output files
+output.txt
+output_error.txt
+
+# Backup files
+*.original

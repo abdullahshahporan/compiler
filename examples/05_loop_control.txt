@@ -1,0 +1,29 @@
+// Example 05: For Loop (barbar) with break (bondho) and continue (chaliyejao)
+
+purno main() shuru
+    purno sum = 0;
+    purno i = 0;
+
+    // Sum odd numbers 1..9 using continue
+    ghurao (i < 10) shuru
+        i = i jog 1;
+        purno rem = i biyog ((i vag 2) gun 2);
+        jodi (rem == 0) shuru
+            chaliyejao;
+        shesh
+        sum = sum jog i;
+    shesh
+    dekhao("Odd sum 1..9 ="); dekhao(sum);
+
+    // Break example
+    purno j = 0;
+    ghurao (j < 100) shuru
+        jodi (j == 10) shuru
+            bondho;
+        shesh
+        j = j jog 1;
+    shesh
+    dekhao("j after break ="); dekhao(j);
+
+    ferot 0;
+shesh

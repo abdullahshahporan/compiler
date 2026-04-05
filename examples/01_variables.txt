@@ -1,0 +1,14 @@
+// Example 01: Variables and Types
+// S++ types: purno (int), dosomik (float), chinho (char)
+
+purno main() shuru
+    purno x = 10;
+    dosomik pi = 3.14;
+    chinho ch = 'A';
+
+    dekhao("=== Variables Demo ===");
+    dekhao(x);
+    dekhao(pi);
+
+    ferot 0;
+shesh

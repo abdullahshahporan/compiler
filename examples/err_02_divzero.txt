@@ -1,5 +1,5 @@
-// Test: Division by zero (runtime error)
-// This passes semantic analysis but fails at runtime
+// Error Test: Division by zero
+// Expected: Runtime error
 
 purno main() shuru
     purno a = 10;

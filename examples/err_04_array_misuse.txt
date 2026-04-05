@@ -1,0 +1,14 @@
+// Error Test: Array misuse
+// Expected: Semantic errors for array without subscript and non-array with subscript
+
+purno main() shuru
+    array purno arr[3];
+    arr[0] = 10;
+    arr[1] = 20;
+
+    purno x = arr;
+    purno y = 5;
+    purno z = y[0];
+
+    ferot 0;
+shesh

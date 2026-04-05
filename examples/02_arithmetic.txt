@@ -1,0 +1,21 @@
+// Example 02: Arithmetic (jog, biyog, gun, vag, root)
+
+purno main() shuru
+    purno a = 10;
+    purno b = 3;
+
+    purno sum = a jog b;
+    purno diff = a biyog b;
+    purno prod = a gun b;
+    purno quot = a vag b;
+
+    dekhao("sum ="); dekhao(sum);
+    dekhao("diff ="); dekhao(diff);
+    dekhao("prod ="); dekhao(prod);
+    dekhao("quot ="); dekhao(quot);
+
+    dosomik sq = root(144);
+    dekhao("root(144) ="); dekhao(sq);
+
+    ferot 0;
+shesh

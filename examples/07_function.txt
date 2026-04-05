@@ -1,0 +1,25 @@
+// Example 07: User-defined Functions with recursion
+
+purno add(purno a, purno b) shuru
+    ferot a jog b;
+shesh
+
+purno factorial(purno n) shuru
+    purno result = 1;
+    purno i = 1;
+    ghurao (i <= n) shuru
+        result = result gun i;
+        i = i jog 1;
+    shesh
+    ferot result;
+shesh
+
+purno main() shuru
+    purno sum = add(2, 3);
+    dekhao("add(2, 3) ="); dekhao(sum);
+
+    purno fact5 = factorial(5);
+    dekhao("factorial(5) ="); dekhao(fact5);
+
+    ferot 0;
+shesh

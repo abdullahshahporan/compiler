@@ -1,9 +1,5 @@
 %{
-/* ========================================================
-   S++ Compiler - Flex Lexer
-   Integrated with Bison parser.
-   Tokenizes Bangla-keyword based S++ source files.
-   ======================================================== */
+/* spp_lexer.l — S++ Flex Lexer: tokenizes Bangla-keyword source */
 
 #include <stdio.h>
 #include <string.h>
@@ -11,8 +7,6 @@
 #include "spp_parser.tab.h"
 
 extern YYSTYPE yylval;
-
-/* Track line numbers */
 int line = 1;
 
 %}

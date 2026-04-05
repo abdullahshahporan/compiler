@@ -1,0 +1,15 @@
+// Example 06: Arrays
+
+purno main() shuru
+    array purno arr[5];
+    arr[0] = 100;
+    arr[1] = 200;
+    arr[2] = 300;
+    arr[3] = arr[0] jog arr[1];
+
+    dekhao("arr[0] ="); dekhao(arr[0]);
+    dekhao("arr[1] ="); dekhao(arr[1]);
+    dekhao("arr[3] = arr[0]+arr[1] ="); dekhao(arr[3]);
+
+    ferot 0;
+shesh

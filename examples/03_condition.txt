@@ -1,0 +1,15 @@
+// Example 03: Condition (jodi / nahole)
+
+purno main() shuru
+    purno x = 15;
+    purno y = 20;
+
+    jodi (x > y) shuru
+        dekhao("x is bigger");
+    shesh
+    nahole shuru
+        dekhao("y is bigger or equal");
+    shesh
+
+    ferot 0;
+shesh

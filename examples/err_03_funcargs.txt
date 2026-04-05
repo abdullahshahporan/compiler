@@ -1,4 +1,4 @@
-// Test: Wrong function argument count
+// Error Test: Wrong function argument count
 // Expected: Semantic error - 'add' expects 2 args, got 3
 
 purno add(purno a, purno b) shuru

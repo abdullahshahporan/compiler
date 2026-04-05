@@ -1,5 +1,5 @@
-// Test: Undeclared variable detection
-// Expected: Semantic error for 'z' (undeclared)
+// Error Test: Undeclared variable
+// Expected: Semantic error for 'z'
 
 purno main() shuru
     purno x = 10;

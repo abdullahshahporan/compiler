@@ -1,0 +1,14 @@
+// Example 04: While Loop (ghurao)
+
+purno main() shuru
+    purno i = 0;
+    purno sum = 0;
+
+    ghurao (i < 5) shuru
+        sum = sum jog i;
+        i = i jog 1;
+    shesh
+
+    dekhao("sum 0..4 ="); dekhao(sum);
+    ferot 0;
+shesh

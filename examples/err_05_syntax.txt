@@ -1,0 +1,14 @@
+// Error Test: Syntax and Lexical errors
+// Expected: Lexical error (@), syntax error (missing ;)
+
+purno main() shuru
+    purno a = 5 @ 3;
+    purno b = 10
+    dekhao(b);
+    purno c = 3.14;
+    dekhao(c);
+    dekhao(z);
+    array purno arr[3];
+    arr[5] = 99;
+
+shesh
