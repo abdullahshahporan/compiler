@@ -56,6 +56,7 @@ int yylex(void);
 %type <node> print_stmt input_stmt return_stmt
 %type <node> break_stmt continue_stmt
 %type <node> func_call inc_dec_stmt for_update
+%type <node> nested_func_def
 %type <node> param_list_opt param_list
 %type <node> arg_list_opt arg_list
 %type <type_val> type_spec
@@ -144,11 +145,22 @@ statement
     | continue_stmt SEMICOLON   { $$ = $1; }
     | func_call SEMICOLON       { $$ = $1; }
     | inc_dec_stmt SEMICOLON    { $$ = $1; }
+    | nested_func_def           { $$ = $1; }
     | error SEMICOLON {
         fprintf(stderr, "Syntax Error: Invalid statement at line %d (recovered)\n", line);
         error_count++;
         yyerrok;
         $$ = NULL;
+    }
+    ;
+
+/* --- Nested Function Definition (inside another function) --- */
+nested_func_def
+    : type_spec IDENTIFIER LPAREN param_list_opt RPAREN SHURU stmt_list SHESH {
+        $$ = make_func_def($1, $2, $4, $7);
+    }
+    | BANAW IDENTIFIER LPAREN param_list_opt RPAREN SHURU stmt_list SHESH {
+        $$ = make_func_def(T_VOID, $2, $4, $7);
     }
     ;
 

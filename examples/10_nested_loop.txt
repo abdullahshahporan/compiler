@@ -1,0 +1,63 @@
+// ============================================
+// S++ Feature Demo: Nested Loops
+// ghurao (while) inside ghurao (while)
+// barbar (for) inside barbar (for)
+// ============================================
+
+purno main() shuru
+
+    dekhao("=== Nested Loop Demo ===");
+
+    // --- Nested While Loop: Multiplication Table ---
+    dekhao("--- Multiplication Table (1 to 3) ---");
+    purno i = 1;
+    ghurao (i <= 3) shuru
+        purno j = 1;
+        ghurao (j <= 3) shuru
+            purno product = i gun j;
+            dekhao(i);
+            dekhao(j);
+            dekhao(product);
+            j = j jog 1;
+        shesh
+        i = i jog 1;
+    shesh
+
+    // --- Nested For Loop: Pattern Sum ---
+    dekhao("--- Nested For Sum ---");
+    purno total = 0;
+    purno row = 0;
+    purno col = 0;
+    barbar (row = 1; row <= 3; row = row jog 1) shuru
+        purno rowSum = 0;
+        barbar (col = 1; col <= row; col = col jog 1) shuru
+            rowSum = rowSum jog col;
+        shesh
+        dekhao(rowSum);
+        total = total jog rowSum;
+    shesh
+    dekhao("total =");
+    dekhao(total);
+
+    // --- Nested Loop with Break ---
+    dekhao("--- Nested Loop with Break ---");
+    purno found = 0;
+    purno a = 1;
+    ghurao (a <= 5) shuru
+        purno b = 1;
+        ghurao (b <= 5) shuru
+            jodi (a gun b == 12) shuru
+                found = a jog b;
+                bondho;
+            shesh
+            b = b jog 1;
+        shesh
+        a = a jog 1;
+    shesh
+    dekhao("first a+b where a*b==12:");
+    dekhao(found);
+
+    dekhao("=== Nested Loop Complete ===");
+    ferot 0;
+
+shesh

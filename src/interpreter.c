@@ -318,13 +318,10 @@ ExecResult exec_node(ASTNode *node) {
         ExecResult val = eval_expr(node->left);
         if (val.is_error) return make_res(0, T_VOID);
         if (val.is_string) {
-            printf("  [Output] %s\n", val.sval);
             if (output_file) fprintf(output_file, "%s\n", val.sval);
         } else if (val.type == T_INT) {
-            printf("  [Output] %d\n", (int)val.value);
             if (output_file) fprintf(output_file, "%d\n", (int)val.value);
         } else {
-            printf("  [Output] %.4g\n", val.value);
             if (output_file) fprintf(output_file, "%.4g\n", val.value);
         }
         return make_res(0, T_VOID);
@@ -338,8 +335,8 @@ ExecResult exec_node(ASTNode *node) {
             error_count++;
         } else {
             double val;
-            printf("  [Input] Enter value for '%s': ", node->name);
-            fflush(stdout);
+            fprintf(stderr, "[Input] Enter value for '%s': ", node->name);
+            fflush(stderr);
             if (scanf("%lf", &val) == 1) {
                 sym_table[idx].value   = val;
                 sym_table[idx].is_init = 1;
@@ -386,6 +383,20 @@ ExecResult exec_node(ASTNode *node) {
     case N_FUNC_CALL:
         return eval_expr(node);
 
+    case N_FUNC_DEF: {
+        /* Nested function: register in current scope */
+        int idx = sym_add(node->name, (VarType)node->var_type, node->lineno);
+        if (idx != -1) {
+            sym_table[idx].is_function = 1;
+            sym_table[idx].func_node   = node;
+            int pc = 0;
+            ASTNode *p = node->params;
+            while (p) { pc++; p = p->next; }
+            sym_table[idx].param_count = pc;
+        }
+        return make_res(0, T_VOID);
+    }
+
     default:
         return eval_expr(node);
     }
@@ -398,7 +409,7 @@ ExecResult exec_list(ASTNode *list) {
     ASTNode *s = list;
     while (s) {
         if (error_count > errors_before_exec) {
-            printf("  [Halted] Execution stopped due to error(s)\n");
+            if (output_file) fprintf(output_file, "[Halted] Execution stopped due to error(s)\n");
             return r;
         }
         r = exec_node(s);
@@ -436,7 +447,6 @@ void exec_program(ASTNode *root) {
             scope_push();
             ExecResult r = exec_list(f->body);
             (void)r;
-            print_sym_table(stdout);
             if (output_file) print_sym_table(output_file);
             final_sym_count = sym_count;
             scope_pop();

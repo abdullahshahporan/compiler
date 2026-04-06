@@ -222,6 +222,27 @@ void semantic_check_node(ASTNode *node) {
     case N_FUNC_CALL:
         infer_expr_type(node);
         break;
+    case N_FUNC_DEF: {
+        /* Nested function: register in current scope and check body */
+        int idx = sym_add(node->name, (VarType)node->var_type, node->lineno);
+        if (idx != -1) {
+            sym_table[idx].is_function = 1;
+            sym_table[idx].func_node   = node;
+            int pc = 0;
+            ASTNode *p = node->params;
+            while (p) { pc++; p = p->next; }
+            sym_table[idx].param_count = pc;
+        }
+        scope_push();
+        ASTNode *p = node->params;
+        while (p) {
+            sym_add(p->name, (VarType)p->var_type, p->lineno);
+            p = p->next;
+        }
+        semantic_check_list(node->body);
+        scope_pop();
+        break;
+    }
     default:
         break;
     }

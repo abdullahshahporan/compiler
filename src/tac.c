@@ -259,6 +259,15 @@ void gen_stmt_tac(ASTNode *node) {
         tac_add(5, "", node->name, "", nargs);
         break;
     }
+    case N_FUNC_DEF: {
+        /* Nested function: emit label, body, end label */
+        tac_add(1, node->name, "", "", "");
+        gen_list_tac(node->body);
+        char end_lbl[80];
+        sprintf(end_lbl, "end_%s", node->name);
+        tac_add(1, end_lbl, "", "", "");
+        break;
+    }
     default: break;
     }
 }

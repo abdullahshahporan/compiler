@@ -156,6 +156,22 @@ void gen_c_stmt(FILE *f, ASTNode *node, int indent) {
     case N_FUNC_CALL:
         gen_c_expr(f, node); fprintf(f, ";\n");
         break;
+    case N_FUNC_DEF: {
+        /* Nested function (GCC extension) */
+        fprintf(f, "/* nested */ %s %s(", c_type(node->var_type), node->name);
+        ASTNode *p = node->params;
+        int first = 1;
+        while (p) {
+            if (!first) fprintf(f, ", ");
+            fprintf(f, "%s %s", c_type(p->var_type), p->name);
+            p = p->next;  first = 0;
+        }
+        fprintf(f, ") {\n");
+        gen_c_list(f, node->body, indent + 1);
+        for (int i = 0; i < indent; i++) fprintf(f, "    ");
+        fprintf(f, "}\n");
+        break;
+    }
     default: break;
     }
 }

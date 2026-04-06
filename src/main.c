@@ -18,14 +18,8 @@ int      final_sym_count   = 0;
 int      errors_before_exec = 0;
 
 int main(int argc, char *argv[]) {
-    printf("============================================\n");
-    printf("       S++ Compiler (SPP) v3.0\n");
-    printf("  Bangla-Keyword Programming Language\n");
-    printf("  Architecture: AST + Semantic + Interpreter + TAC\n");
-    printf("============================================\n");
-
-    char *in_file  = "input.txt";
-    char *out_file = "output.txt";
+    char *in_file  = "tests/input.txt";
+    char *out_file = "tests/output.txt";
     if (argc >= 2) in_file  = argv[1];
     if (argc >= 3) out_file = argv[2];
 
@@ -42,22 +36,22 @@ int main(int argc, char *argv[]) {
     yyin = in;
 
     /* Phase 1: Parsing */
-    printf("\n[Phase 1] Parsing '%s'...\n", in_file);
+    fprintf(output_file, "[Phase 1] Parsing '%s'...\n", in_file);
     int parse_result = yyparse();
     if (parse_result != 0 || !ast_root) {
         fprintf(stderr, "Parsing failed.\n");
         fclose(in); fclose(output_file);
         return 1;
     }
-    printf("[Phase 1] Parsing complete. AST built successfully.\n");
+    fprintf(output_file, "[Phase 1] Parsing complete. AST built successfully.\n");
 
     /* Phase 2: Semantic Analysis */
-    printf("\n[Phase 2] Semantic analysis...\n");
+    fprintf(output_file, "\n[Phase 2] Semantic analysis...\n");
     semantic_check_program(ast_root);
     if (error_count > 0)
-        printf("[Phase 2] Found %d semantic error(s).\n", error_count);
+        fprintf(output_file, "[Phase 2] Found %d semantic error(s).\n", error_count);
     else
-        printf("[Phase 2] Semantic analysis passed.\n");
+        fprintf(output_file, "[Phase 2] Semantic analysis passed.\n");
     sym_reset();
 
     int func_count = 0;
@@ -66,7 +60,7 @@ int main(int argc, char *argv[]) {
 
     /* Phase 3: Execution */
     if (error_count == 0) {
-        printf("\n[Phase 3] Executing program...\n");
+        fprintf(output_file, "\n[Phase 3] Executing program...\n");
         errors_before_exec = error_count;
         exec_program(ast_root);
         if (error_count > errors_before_exec) exec_halted = 1;
@@ -74,42 +68,25 @@ int main(int argc, char *argv[]) {
 
     if (error_count == 0) {
         /* Phase 4: TAC Generation */
-        printf("\n[Phase 4] Generating intermediate code...\n");
+        fprintf(output_file, "\n[Phase 4] Generating intermediate code...\n");
         gen_program_tac(ast_root);
-        print_tac(stdout, "INTERMEDIATE CODE (Three-Address Code)");
         print_tac(output_file, "INTERMEDIATE CODE (Three-Address Code)");
 
         /* Phase 5: Optimization */
-        printf("\n[Phase 5] Optimizing...\n");
+        fprintf(output_file, "\n[Phase 5] Optimizing...\n");
         optimize_tac();
-        print_tac(stdout, "OPTIMIZED CODE (Constant Folding + Dead Code Elim)");
         print_tac(output_file, "OPTIMIZED CODE (Constant Folding + Dead Code Elim)");
 
         /* Phase 6: C Code Generation */
-        printf("\n[Phase 6] Generating equivalent C code...\n");
-        gen_c_program(stdout, ast_root);
+        fprintf(output_file, "\n[Phase 6] Generating equivalent C code...\n");
         gen_c_program(output_file, ast_root);
     } else {
-        printf("\n[Phase 4-6] Skipped -- %d error(s) detected.\n", error_count);
         fprintf(output_file, "\n[Phase 4-6] Skipped -- %d error(s) detected.\n", error_count);
     }
 
     fflush(stderr);
 
     /* Compilation Summary */
-    printf("\n============================================\n");
-    printf("           COMPILATION SUMMARY\n");
-    printf("============================================\n");
-    printf("  Errors     : %d\n", error_count);
-    printf("  Warnings   : %d\n", warning_count);
-    printf("  Functions  : %d\n", func_count);
-    printf("  Symbols    : %d\n", final_sym_count);
-    printf("  TAC Lines  : %d\n", tac_count);
-    printf("  AST Nodes  : %d\n", node_count);
-    printf("  Exec Halted: %s\n", exec_halted ? "Yes" : "No");
-    printf("  Status     : %s\n", (error_count == 0) ? "SUCCESS" : "FAILED");
-    printf("============================================\n");
-
     fprintf(output_file, "\n============================================\n");
     fprintf(output_file, "           COMPILATION SUMMARY\n");
     fprintf(output_file, "============================================\n");

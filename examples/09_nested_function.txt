@@ -1,0 +1,31 @@
+purno main() shuru
+
+    dekhao("=== Nested Function Demo ===");
+
+    purno square(purno y) shuru
+        ferot y gun y;
+    shesh
+
+    purno add(purno a, purno b) shuru
+        ferot a jog b;
+    shesh
+
+    purno x = 5;
+    purno sq = square(x);
+    dekhao("square(5) =");
+    dekhao(sq);
+
+    purno sum = add(sq, 10);
+    dekhao("add(25, 10) =");
+    dekhao(sum);
+
+    banaw greet() shuru
+        dekhao("Hello from nested void function!");
+    shesh
+
+    greet();
+
+    dekhao("=== Nested Function Complete ===");
+    ferot 0;
+
+shesh

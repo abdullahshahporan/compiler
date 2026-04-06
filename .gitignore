@@ -1,18 +1,15 @@
-# Generated files
-spp_parser.tab.c
-spp_parser.tab.h
-spp_parser.output
-lex.yy.c
+# Generated files (Flex/Bison output)
+generated/
 
-# Build artifacts
-*.o
-src/*.o
-spp_compiler.exe
-spp_compiler
+# Build artifacts (object files & executable)
+build/
 
-# Output files
-output.txt
-output_error.txt
+# Test output files
+tests/output.txt
+tests/output_error.txt
+
+# Example run results
+examples/run-results/
 
 # Backup files
 *.original
